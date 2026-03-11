@@ -13,15 +13,13 @@ load_dotenv()
 
 st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 
-# 1. OPTYMALIZACJA: Baza ładuje się tylko RAZ, a nie przy każdym pytaniu
+# 1. Ładowanie bazy z optymalizacją (tylko raz) i polskim radarem
 @st.cache_resource(show_spinner="Ładowanie bazy wiedzy...")
 def load_and_prepare_db():
-    # Zmiana 1: Model wielojęzyczny (lepiej rozumie polski kontekst i słowa takie jak "średnia")
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
     documents = []
     folder = "documents"
 
-    # Zabezpieczenie: sprawdza czy folder istnieje i czy są w nim PDF-y
     if os.path.exists(folder):
         for filename in os.listdir(folder):
             if filename.endswith(".pdf"):
@@ -39,14 +37,14 @@ def load_and_prepare_db():
     text_splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=150)
     texts = text_splitter.split_documents(documents)
     
-    # Wymuszamy stworzenie zupełnie nowego magazynu (żeby nie gryzł się ze starymi wymiarami)
+    # Wymuszamy stworzenie czystego magazynu dla polskiego modelu
     db = Chroma.from_documents(texts, embeddings, collection_name="nowy_radar_pl_v1")
     return db
 
 # Uruchomienie bazy z pamięci podręcznej
 db = load_and_prepare_db()
 
-# Konfiguracja klucza OpenAI (najpierw szuka w chmurze Streamlit, potem w pliku .env)
+# Konfiguracja klucza OpenAI
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
 
 if not api_key:
@@ -72,12 +70,11 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Jeśli baza z jakiegoś powodu się nie załadowała, przerwij
     if db is None:
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # 2. NAPRAWA WYSZUKIWANIA: Użycie MMR (Maximal Marginal Relevance) do szukania różnorodnych fragmentów
+    # 2. Szukanie kontekstu (z różnorodnością wyników MMR)
     results = db.max_marginal_relevance_search(prompt, k=5, fetch_k=20)
 
     unique_texts = []
@@ -87,46 +84,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
 
     context = "\n\n---\n\n".join(unique_texts)
 
-    # --- PANEL DIAGNOSTYCZNY DLA DYSPOZYTORA ---
-    with st.expander("🔍 Podgląd z maszynowni (Co dokładnie widzi bot?)"):
-        if not context.strip():
-            st.error("UWAGA: Baza wektorowa zwróciła PUSTY tekst.")
-        else:
-            st.info("Bot otrzymał do analizy następujący tekst z PDF-a:")
-            st.write(context)
-    # -------------------------------------------
-
-    # Prompt dla modelu językowego AI (zabezpieczony przed halucynacjami)
+    # 3. Prompt dla modelu językowego AI
     full_prompt = f"""
     Jesteś profesjonalnym i pomocnym asystentem studenta.
-    Twoim zadaniem jest odpowiadać na pytania na podstawie PONIŻSZYCH fragmentów regulaminu uczelni.
-
-    ZASADY:
-    1. Opieraj się WYŁĄCZNIE na dostarczonym tekście.
-    2. Jeśli w tekście są podane konkretne kwoty, progi lub średnie, zacytuj je.
-    3. Jeśli odpowiedź na pytanie NIE znajduje się w poniższych fragmentach, napisz dokładnie:
-    "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
-    4. Nie wymyślaj własnych odpowiedzi, nie korzystaj z wiedzy ogólnej.
-
-    FRAGMENTY REGULAMINU:
-    {context}
-
-    PYTANIE STUDENTA:
-    {prompt}
-
-    ODPOWIEDŹ:
-    """
-
-    # Odpytanie modelu OpenAI
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": full_prompt}]
-    )
-
-    answer = response.choices[0].message.content
-
-    # Wyświetlenie i zapisanie odpowiedzi
-    with st.chat_message("assistant"):
-        st.markdown(answer)
-
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    Twoim zadaniem jest odpowiadać na pytania na podstawie PONIŻSZYCH fragmentów regulaminu ucz
