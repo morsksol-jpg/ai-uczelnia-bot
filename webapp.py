@@ -39,7 +39,8 @@ def load_and_prepare_db():
     text_splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=150)
     texts = text_splitter.split_documents(documents)
     
-    db = Chroma.from_documents(texts, embeddings)
+    # Wymuszamy stworzenie zupełnie nowego magazynu (żeby nie gryzł się ze starymi wymiarami)
+    db = Chroma.from_documents(texts, embeddings, collection_name="nowy_radar_pl_v1")
     return db
 
 # Uruchomienie bazy z pamięci podręcznej
