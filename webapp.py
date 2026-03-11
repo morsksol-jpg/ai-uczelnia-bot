@@ -54,9 +54,17 @@ if prompt := st.chat_input("Zadaj pytanie"):
         st.markdown(prompt)
 
     # wyszukiwanie fragmentów regulaminu
-    results = db.similarity_search(prompt, k=6)
+    results = db.similarity_search(prompt, k=12)
 
-    context = "\n\n".join([r.page_content for r in results])
+    filtered = []
+
+for r in results:
+    text = r.page_content.lower()
+
+    if "załącznik" not in text and "wzór wniosku" not in text:
+        filtered.append(r.page_content)
+
+context = "\n\n".join(filtered)
     st.write("Znalezione fragmenty:", context)
 
     # prompt dla AI
