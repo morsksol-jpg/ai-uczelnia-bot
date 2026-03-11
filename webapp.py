@@ -61,7 +61,7 @@ if prompt := st.chat_input("Zadaj pytanie"):
 
     context = "\n\n".join([r.page_content for r in results])
     st.write(context)
-full_prompt = f"""
+    full_prompt = f"""
 Odpowiadaj WYŁĄCZNIE na podstawie podanych fragmentów regulaminu uczelni.
 
 Jeśli odpowiedź nie znajduje się w fragmentach, napisz:
@@ -78,13 +78,12 @@ Pytanie studenta:
 Odpowiedź:
 """
 
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": full_prompt}]
+)
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": full_prompt}]
-    )
-
-    answer = response.choices[0].message.content
+answer = response.choices[0].message.content
 
     with st.chat_message("assistant"):
         st.markdown(answer)
