@@ -16,32 +16,22 @@ st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 embeddings = HuggingFaceEmbeddings()
 
 # Ścieżka do bazy wektorowej
-db_path = "vector_db"
+documents = []
+folder = "documents"
 
-# Jeśli baza istnieje → użyj
-if os.path.exists(db_path):
-    db = Chroma(persist_directory=db_path, embedding_function=embeddings)
+for filename in os.listdir(folder):
+    if filename.endswith(".pdf"):
+        loader = PyPDFLoader(os.path.join(folder, filename))
+        documents.extend(loader.load())
 
-# Jeśli nie istnieje → zbuduj z PDF
-else:
-    documents = []
-    folder = "documents"
+text_splitter = CharacterTextSplitter(
+    chunk_size=800,
+    chunk_overlap=150
+)
 
-    for filename in os.listdir(folder):
-        if filename.endswith(".pdf"):
-            loader = PyPDFLoader(os.path.join(folder, filename))
-            documents.extend(loader.load())
+texts = text_splitter.split_documents(documents)
 
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    texts = text_splitter.split_documents(documents)
-
-    db = Chroma.from_documents(
-        texts,
-        embeddings,
-        persist_directory=db_path
-    )
-
-    db.persist()
+db = Chroma.from_documents(texts, embeddings)
 
 # Klient OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
