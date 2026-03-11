@@ -57,6 +57,7 @@ if prompt := st.chat_input("Zadaj pytanie"):
     results = db.similarity_search(prompt, k=6)
 
     context = "\n\n".join([r.page_content for r in results])
+    st.write("Znalezione fragmenty:", context)
 
     # prompt dla AI
     full_prompt = f"""
