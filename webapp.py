@@ -16,7 +16,8 @@ st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 # 1. OPTYMALIZACJA: Baza ładuje się tylko RAZ, a nie przy każdym pytaniu
 @st.cache_resource(show_spinner="Ładowanie bazy wiedzy...")
 def load_and_prepare_db():
-    embeddings = HuggingFaceEmbeddings()
+    # Zmiana 1: Model wielojęzyczny (lepiej rozumie polski kontekst i słowa takie jak "średnia")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
     documents = []
     folder = "documents"
 
@@ -75,8 +76,8 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # 2. NAPRAWA WYSZUKIWANIA: Czysty prompt i usuwanie duplikatów
-    results = db.similarity_search(prompt, k=6)
+    # 2. NAPRAWA WYSZUKIWANIA: Użycie MMR (Maximal Marginal Relevance) do szukania różnorodnych fragmentów
+    results = db.max_marginal_relevance_search(prompt, k=5, fetch_k=20)
 
     unique_texts = []
     for r in results:
