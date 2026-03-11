@@ -12,10 +12,10 @@ load_dotenv()
 
 st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 
-# Embeddings
+# embeddings
 embeddings = HuggingFaceEmbeddings()
 
-# Ścieżka do bazy wektorowej
+# wczytanie dokumentów
 documents = []
 folder = "documents"
 
@@ -24,6 +24,7 @@ for filename in os.listdir(folder):
         loader = PyPDFLoader(os.path.join(folder, filename))
         documents.extend(loader.load())
 
+# dzielenie tekstu
 text_splitter = CharacterTextSplitter(
     chunk_size=800,
     chunk_overlap=150
@@ -31,21 +32,22 @@ text_splitter = CharacterTextSplitter(
 
 texts = text_splitter.split_documents(documents)
 
+# baza wektorowa
 db = Chroma.from_documents(texts, embeddings)
 
-# Klient OpenAI
+# klient OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Pamięć rozmowy
+# pamięć rozmowy
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Wyświetlanie historii
+# wyświetlanie historii
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Pole pytania
+# pole pytania
 if prompt := st.chat_input("Zadaj pytanie"):
 
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -53,28 +55,26 @@ if prompt := st.chat_input("Zadaj pytanie"):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # wyszukiwanie fragmentów regulaminu
+    # wyszukiwanie fragmentów
     results = db.similarity_search(prompt, k=12)
 
+    # filtrowanie załączników
     filtered = []
 
-for r in results:
-    text = r.page_content.lower()
+    for r in results:
+        text = r.page_content.lower()
 
-    if "załącznik" not in text and "wzór wniosku" not in text:
-        filtered.append(r.page_content)
+        if "załącznik" not in text and "wzór wniosku" not in text:
+            filtered.append(r.page_content)
 
-context = "\n\n".join(filtered)
-    st.write("Znalezione fragmenty:", context)
+    context = "\n\n".join(filtered)
 
     # prompt dla AI
     full_prompt = f"""
-Odpowiadaj WYŁĄCZNIE na podstawie podanych fragmentów regulaminu uczelni.
+Odpowiadaj WYŁĄCZNIE na podstawie fragmentów regulaminu.
 
-Jeśli odpowiedź nie znajduje się w fragmentach, napisz:
+Jeśli odpowiedź nie znajduje się w fragmentach napisz:
 "Nie znalazłem informacji w regulaminie."
-
-Nie wymyślaj informacji.
 
 Fragmenty regulaminu:
 {context}
