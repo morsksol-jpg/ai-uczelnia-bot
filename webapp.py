@@ -63,6 +63,14 @@ if prompt := st.chat_input("Zadaj pytanie"):
     # 2. NAPRAWA: Usunięto agresywny filtr na "załącznik". 
     # AI dostanie czysty tekst i samo wybierze odpowiedź.
     context = "\n\n".join([r.page_content for r in results])
+    # --- PANEL DIAGNOSTYCZNY DLA DYSPOZYTORA ---
+    with st.expander("🔍 Podgląd z maszynowni (Co dokładnie widzi bot?)"):
+        if not context.strip():
+            st.error("UWAGA: Baza wektorowa zwróciła PUSTY tekst. Bot nie ma z czego czytać!")
+        else:
+            st.info("Bot otrzymał do analizy następujący tekst z PDF-a:")
+            st.write(context)
+    # -------------------------------------------
 
     # prompt dla AI
     full_prompt = f"""
