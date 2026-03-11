@@ -4,19 +4,28 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from langchain_community.vectorstores import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import CharacterTextSplitter
+# ZMIANA: Zamiast ciężkiego HuggingFace, importujemy lekkie OpenAI Embeddings
+from langchain_openai import OpenAIEmbeddings
 
-# Ładowanie zmiennych środowiskowych (dla testów lokalnych)
+# Ładowanie zmiennych środowiskowych
 load_dotenv()
 
 st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 
-# 1. Ładowanie bazy z optymalizacją (tylko raz) i polskim radarem
+# Pobranie klucza na samym starcie (żeby radar też miał do niego dostęp)
+api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
+
+if not api_key:
+    st.error("Brak klucza API OpenAI! Skonfiguruj plik .env lub Streamlit Secrets.")
+    st.stop()
+
+# 1. Ładowanie bazy z optymalizacją - teraz radar pracuje na serwerach OpenAI (RAM = 0!)
 @st.cache_resource(show_spinner="Ładowanie bazy wiedzy...")
-def load_and_prepare_db():
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+def load_and_prepare_db(_api_key):
+    # ZMIANA: Używamy radaru OpenAI (model embedding-3-small to najnowszy, tani i lekki standard)
+    embeddings = OpenAIEmbeddings(api_key=_api_key, model="text-embedding-3-small")
     documents = []
     folder = "documents"
 
@@ -37,20 +46,12 @@ def load_and_prepare_db():
     text_splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=150)
     texts = text_splitter.split_documents(documents)
     
-    # Wymuszamy stworzenie czystego magazynu dla polskiego modelu
-    db = Chroma.from_documents(texts, embeddings, collection_name="nowy_radar_pl_v1")
+    # Wymuszamy nowy magazyn, bo zmieniliśmy system paczkowania na OpenAI
+    db = Chroma.from_documents(texts, embeddings, collection_name="openai_radar_v1")
     return db
 
-# Uruchomienie bazy z pamięci podręcznej
-db = load_and_prepare_db()
-
-# Konfiguracja klucza OpenAI
-api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    st.error("Brak klucza API OpenAI! Skonfiguruj plik .env lub Streamlit Secrets.")
-    st.stop()
-
+# Uruchomienie bazy (przekazujemy klucz do radaru)
+db = load_and_prepare_db(api_key)
 client = OpenAI(api_key=api_key)
 
 # Inicjalizacja pamięci rozmowy czatu
@@ -65,7 +66,6 @@ for message in st.session_state.messages:
 # Główne pole wprowadzania pytań
 if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na stypendium rektora?)"):
 
-    # Zapisz pytanie użytkownika do historii
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -74,7 +74,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # 2. Szukanie kontekstu (z różnorodnością wyników MMR)
+    # Szukanie kontekstu
     results = db.max_marginal_relevance_search(prompt, k=5, fetch_k=20)
 
     unique_texts = []
@@ -84,7 +84,36 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
 
     context = "\n\n---\n\n".join(unique_texts)
 
-    # 3. Prompt dla modelu językowego AI
+    # Prompt dla modelu AI
     full_prompt = f"""
     Jesteś profesjonalnym i pomocnym asystentem studenta.
-    Twoim zadaniem jest odpowiadać na pytania na podstawie PONIŻSZYCH fragmentów regulaminu ucz
+    Twoim zadaniem jest odpowiadać na pytania na podstawie PONIŻSZYCH fragmentów regulaminu uczelni.
+
+    ZASADY:
+    1. Opieraj się WYŁĄCZNIE na dostarczonym tekście.
+    2. Jeśli w tekście są podane konkretne kwoty, progi lub średnie, zacytuj je.
+    3. Jeśli odpowiedź na pytanie NIE znajduje się w poniższych fragmentach, napisz dokładnie:
+    "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
+    4. Nie wymyślaj własnych odpowiedzi, nie korzystaj z wiedzy ogólnej.
+    5. Odpowiadaj krótko, naturalnie i konkretnie.
+
+    FRAGMENTY REGULAMINU:
+    {context}
+
+    PYTANIE STUDENTA:
+    {prompt}
+
+    ODPOWIEDŹ:
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": full_prompt}]
+    )
+
+    answer = response.choices[0].message.content
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+
+    st.session_state.messages.append({"role": "assistant", "content": answer})
