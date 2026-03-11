@@ -11,10 +11,32 @@ st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 
 embeddings = HuggingFaceEmbeddings()
 
-db = Chroma(
-    persist_directory="vector_db",
-    embedding_function=embeddings
-)
+import os
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import CharacterTextSplitter
+
+db_path = "vector_db"
+
+if os.path.exists(db_path):
+    db = Chroma(persist_directory=db_path, embedding_function=embeddings)
+else:
+    documents = []
+    folder = "documents"
+
+    for filename in os.listdir(folder):
+        if filename.endswith(".pdf"):
+            loader = PyPDFLoader(os.path.join(folder, filename))
+            documents.extend(loader.load())
+
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    texts = text_splitter.split_documents(documents)
+
+    db = Chroma.from_documents(
+        texts,
+        embeddings,
+        persist_directory=db_path
+    )
+    db.persist()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
