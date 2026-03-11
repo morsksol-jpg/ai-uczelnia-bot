@@ -60,9 +60,14 @@ if prompt := st.chat_input("Zadaj pytanie"):
     results = db.similarity_search(prompt, k=6)
 
     context = "\n\n".join([r.page_content for r in results])
+    st.write(context)
+full_prompt = f"""
+Odpowiadaj WYŁĄCZNIE na podstawie podanych fragmentów regulaminu uczelni.
 
-    full_prompt = f"""
-Na podstawie poniższych fragmentów regulaminów uczelni odpowiedz na pytanie studenta.
+Jeśli odpowiedź nie znajduje się w fragmentach, napisz:
+"Nie znalazłem informacji w regulaminie."
+
+Nie wymyślaj informacji.
 
 Fragmenty regulaminu:
 {context}
@@ -72,6 +77,7 @@ Pytanie studenta:
 
 Odpowiedź:
 """
+
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
