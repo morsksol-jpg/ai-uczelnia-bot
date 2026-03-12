@@ -86,14 +86,14 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # --- LEKARSTWO NA AMNEZJĘ ---
-    # Bierzemy 3 ostatnie wiadomości (żeby bot wiedział, o czym rozmawialiście przed chwilą)
-    recent_history = st.session_state.messages[-3:]
-    search_query = " ".join([msg["content"] for msg in recent_history])
+    # --- LEKARSTWO NA AMNEZJĘ (Wersja 2.1 - Czysty sygnał) ---
+    # Bierzemy TYLKO Twoje pytania z historii (max 4 ostatnie), żeby odpowiedź bota nie robiła szumu
+    user_queries = [msg["content"] for msg in st.session_state.messages[-4:] if msg["role"] == "user"]
+    search_query = " ".join(user_queries)
     
-    # Szukamy w bazie na podstawie pełnego kontekstu rozmowy
+    # Szukamy w bazie na podstawie splecionych pytań użytkownika
     results = db.max_marginal_relevance_search(search_query, k=5, fetch_k=20)
-    # ----------------------------
+    # --------------------------------------------------------
 
     unique_texts = []
     for r in results:
@@ -114,6 +114,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
     4. Nie wymyślaj własnych odpowiedzi, nie korzystaj z wiedzy ogólnej.
     5. Odpowiadaj naturalnie, uprzejmie i konkretnie, biorąc pod uwagę kontekst całej rozmowy.
+    6. WAŻNY SŁOWNIK UCZELNIANY: Studenci często pytają o "średnią", ale w regulaminach i tabelach występuje to pod pojęciem "Łączna liczba punktów" lub "Minimalna liczba punktów". Traktuj te pojęcia jako jedno i to samo!
 
     FRAGMENTY REGULAMINU:
     {context}
