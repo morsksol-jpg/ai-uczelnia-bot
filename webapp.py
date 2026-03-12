@@ -64,29 +64,53 @@ def load_and_prepare_db(_api_key):
 db = load_and_prepare_db(api_key)
 client = OpenAI(api_key=api_key)
 
-# Inicjalizacja pamięci rozmowy czatu
+# Inicjalizacja pamięci rozmowy czatu i modułu głosowego
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+# Blokada, żeby ten sam plik audio nie przetwarzał się w kółko
+if "processed_audio" not in st.session_state:
+    st.session_state.processed_audio = None
 
 # Wyświetlanie historii czatu
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Główne pole wprowadzania pytań
-if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na stypendium rektora?)"):
+# --- MODUŁ WEJŚCIA (GŁOS LUB TEKST) ---
+user_question = None
 
-    # Zapisz pytanie użytkownika do historii
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    
+# 1. Opcja Głosowa (Mikrofon wbudowany w Streamlit)
+st.info("💡 Tryb dostępności: Zezwól na dostęp do mikrofonu, aby zadać pytanie głosowo.")
+audio_val = st.audio_input("Nagraj swoje pytanie")
+
+# Jeśli nagrano nowy głos, tłumacz na tekst
+if audio_val and audio_val != st.session_state.processed_audio:
+    st.session_state.processed_audio = audio_val
+    with st.spinner("Przetwarzam głos na tekst..."):
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1", 
+            file=audio_val
+        )
+        user_question = transcript.text
+
+# 2. Opcja Tekstowa (Tradycyjny czat)
+prompt = st.chat_input("Zadaj pytanie tekstowo...")
+if prompt:
+    user_question = prompt
+
+# --- GŁÓWNA LOGIKA ODPOWIEDZI ---
+if user_question:
+    # Zapisz i wyświetl pytanie użytkownika
+    st.session_state.messages.append({"role": "user", "content": user_question})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(user_question)
 
     if db is None:
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # --- ZBIERANIE KONTEKSTU ---
+    # Zbieranie kontekstu (Amnezja - Lekarstwo)
     user_queries = [msg["content"] for msg in st.session_state.messages[-4:] if msg["role"] == "user"]
     search_query = " ".join(user_queries)
     results = db.max_marginal_relevance_search(search_query, k=12, fetch_k=30)
@@ -97,7 +121,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
             unique_texts.append(r.page_content)
     context = "\n\n---\n\n".join(unique_texts)
 
-    # --- NATYWNA PAMIĘĆ OPENAI (Lekarstwo ostateczne) ---
+    # NATYWNA PAMIĘĆ OPENAI
     system_prompt = f"""
     Jesteś profesjonalnym i pomocnym asystentem studenta.
     Odpowiadasz na pytania na podstawie PONIŻSZYCH fragmentów regulaminu uczelni.
@@ -113,14 +137,12 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     {context}
     """
 
-    # Budujemy strukturę konwersacji tak, jak wymaga tego model OpenAI
     api_messages = [{"role": "system", "content": system_prompt}]
     
-    # Ładujemy do silnika AI historię ostatnich 6 wiadomości (żeby doskonale pamietał wątek)
     for msg in st.session_state.messages[-6:]:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Odpytanie modelu AI
+    # Generowanie odpowiedzi AI
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=api_messages
@@ -128,8 +150,19 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
 
     answer = response.choices[0].message.content
 
+    # Wyświetlanie i czytanie odpowiedzi
     with st.chat_message("assistant"):
         st.markdown(answer)
+        
+        # --- MODUŁ LEKTORA (TTS) ---
+        with st.spinner("🎙️ Przygotowuję odpowiedź głosową..."):
+            audio_response = client.audio.speech.create(
+                model="tts-1",
+                voice="nova", # Realistyczny, przyjemny głos żeński
+                input=answer
+            )
+            # Odtwarzamy dźwięk automatycznie dzięki autoplay=True
+            st.audio(audio_response.content, format="audio/mp3", autoplay=True)
 
     # Zapisz odpowiedź bota do historii
     st.session_state.messages.append({"role": "assistant", "content": answer})
