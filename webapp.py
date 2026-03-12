@@ -23,6 +23,14 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # -------------------------------------------------------------
 
+# --- PANEL BOCZNY (PRAWA AUTORSKIE) ---
+with st.sidebar:
+    st.markdown("### 🎓 Informacje o systemie")
+    st.markdown("Inteligentny asystent studenta oparty na architekturze RAG.")
+    st.markdown("---")
+    st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
+# --------------------------------------
+
 st.title("🎓 Bot uczelni – przewodnik po biurokracji")
 
 # Pobranie klucza na samym starcie
@@ -108,6 +116,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     3. Jeśli odpowiedź NIE znajduje się w poniższych fragmentach, napisz dokładnie: "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
     4. SŁOWNIK: "średnia" to w regulaminach "Łączna liczba punktów".
     5. LOGIKA STYPENDIÓW: Tabela z kwotami Stypendium Rektora jest uniwersalna dla wszystkich kierunków! Kiedy student pyta o kwotę, weź jego średnią z historii rozmowy i od razu odczytaj kwotę z tej tabeli.
+    6. LOGIKA ODLEGŁOŚCI: Jeśli kwota dofinansowania zależy od kilometrów (np. koszty podróży Erasmus), zapytaj studenta o dokładną odległość w kilometrach, zamiast podawać stawkę w ciemno.
 
     FRAGMENTY REGULAMINU:
     {context}
