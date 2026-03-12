@@ -86,21 +86,26 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # --- LEKARSTWO NA AMNEZJĘ (Wersja 2.3 - Zwiększony zasięg) ---
-    # Bierzemy TYLKO Twoje pytania z historii (max 4 ostatnie)
+    # --- LEKARSTWO NA AMNEZJĘ CZĘŚĆ 1 (Dla magazyniera) ---
     user_queries = [msg["content"] for msg in st.session_state.messages[-4:] if msg["role"] == "user"]
     search_query = " ".join(user_queries)
-    
-    # ZWIĘKSZONY ZASIĘG (k=12): Bierzemy więcej stron, żeby nie ucięło tabelek z kwotami!
     results = db.max_marginal_relevance_search(search_query, k=12, fetch_k=30)
-    # -------------------------------------------------------------
-
+    
     unique_texts = []
     for r in results:
         if r.page_content not in unique_texts:
             unique_texts.append(r.page_content)
-
     context = "\n\n---\n\n".join(unique_texts)
+
+    # --- LEKARSTWO NA AMNEZJĘ CZĘŚĆ 2 (Dla Urzędnika - NOWOŚĆ) ---
+    # Pakujemy ostatnie rozmowy do teczki, żeby bot pamiętał, o czym mówiliście
+    history_text = ""
+    for msg in st.session_state.messages[-5:-1]: # bierzemy wcześniejsze wiadomości
+        kto = "Student" if msg["role"] == "user" else "Urzędnik"
+        history_text += f"{kto}: {msg['content']}\n"
+        
+    if not history_text:
+        history_text = "Brak wcześniejszych wiadomości."
 
     # Prompt dla modelu AI
     full_prompt = f"""
@@ -113,10 +118,13 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     3. Jeśli odpowiedź na pytanie NIE znajduje się w poniższych fragmentach, napisz dokładnie:
     "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
     4. Nie wymyślaj własnych odpowiedzi, nie korzystaj z wiedzy ogólnej.
-    5. Odpowiadaj naturalnie, uprzejmie i konkretnie, biorąc pod uwagę kontekst całej rozmowy.
+    5. Odpowiadaj naturalnie i uprzejmie. Sklejaj fakty na podstawie "Historii ostatniej rozmowy".
     6. WAŻNY SŁOWNIK UCZELNIANY: Studenci często pytają o "średnią", ale w regulaminach i tabelach występuje to pod pojęciem "Łączna liczba punktów" lub "Minimalna liczba punktów". Traktuj te pojęcia jako jedno i to samo!
 
-    FRAGMENTY REGULAMINU:
+    HISTORIA OSTATNIEJ ROZMOWY (żebyś wiedział o czym mówimy):
+    {history_text}
+
+    FRAGMENTY REGULAMINU (Dostarczone przez system):
     {context}
 
     AKTUALNE PYTANIE STUDENTA:
@@ -135,5 +143,5 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     with st.chat_message("assistant"):
         st.markdown(answer)
 
-    # Zapisz odpowiedź bota do historii (ważne dla kolejnych pytań!)
+    # Zapisz odpowiedź bota do historii
     st.session_state.messages.append({"role": "assistant", "content": answer})
