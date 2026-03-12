@@ -86,14 +86,14 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # --- LEKARSTWO NA AMNEZJĘ (Wersja 2.1 - Czysty sygnał) ---
-    # Bierzemy TYLKO Twoje pytania z historii (max 4 ostatnie), żeby odpowiedź bota nie robiła szumu
+    # --- LEKARSTWO NA AMNEZJĘ (Wersja 2.3 - Zwiększony zasięg) ---
+    # Bierzemy TYLKO Twoje pytania z historii (max 4 ostatnie)
     user_queries = [msg["content"] for msg in st.session_state.messages[-4:] if msg["role"] == "user"]
     search_query = " ".join(user_queries)
     
-    # Szukamy w bazie na podstawie splecionych pytań użytkownika
-    results = db.max_marginal_relevance_search(search_query, k=5, fetch_k=20)
-    # --------------------------------------------------------
+    # ZWIĘKSZONY ZASIĘG (k=12): Bierzemy więcej stron, żeby nie ucięło tabelek z kwotami!
+    results = db.max_marginal_relevance_search(search_query, k=12, fetch_k=30)
+    # -------------------------------------------------------------
 
     unique_texts = []
     for r in results:
