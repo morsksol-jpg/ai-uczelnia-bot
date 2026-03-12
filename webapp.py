@@ -86,7 +86,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # --- LEKARSTWO NA AMNEZJĘ CZĘŚĆ 1 (Dla magazyniera) ---
+    # --- ZBIERANIE KONTEKSTU ---
     user_queries = [msg["content"] for msg in st.session_state.messages[-4:] if msg["role"] == "user"]
     search_query = " ".join(user_queries)
     results = db.max_marginal_relevance_search(search_query, k=12, fetch_k=30)
@@ -97,45 +97,33 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
             unique_texts.append(r.page_content)
     context = "\n\n---\n\n".join(unique_texts)
 
-    # --- LEKARSTWO NA AMNEZJĘ CZĘŚĆ 2 (Dla Urzędnika - NOWOŚĆ) ---
-    # Pakujemy ostatnie rozmowy do teczki, żeby bot pamiętał, o czym mówiliście
-    history_text = ""
-    for msg in st.session_state.messages[-5:-1]: # bierzemy wcześniejsze wiadomości
-        kto = "Student" if msg["role"] == "user" else "Urzędnik"
-        history_text += f"{kto}: {msg['content']}\n"
-        
-    if not history_text:
-        history_text = "Brak wcześniejszych wiadomości."
-
-    # Prompt dla modelu AI
-    full_prompt = f"""
+    # --- NATYWNA PAMIĘĆ OPENAI (Lekarstwo ostateczne) ---
+    system_prompt = f"""
     Jesteś profesjonalnym i pomocnym asystentem studenta.
-    Twoim zadaniem jest odpowiadać na pytania na podstawie PONIŻSZYCH fragmentów regulaminu uczelni.
+    Odpowiadasz na pytania na podstawie PONIŻSZYCH fragmentów regulaminu uczelni.
 
     ZASADY:
     1. Opieraj się WYŁĄCZNIE na dostarczonym tekście.
     2. Jeśli w tekście są podane konkretne kwoty, progi lub średnie, zacytuj je.
-    3. Jeśli odpowiedź na pytanie NIE znajduje się w poniższych fragmentach, napisz dokładnie:
-    "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
-    4. Nie wymyślaj własnych odpowiedzi, nie korzystaj z wiedzy ogólnej.
-    5. Odpowiadaj naturalnie i uprzejmie. Sklejaj fakty na podstawie "Historii ostatniej rozmowy".
-    6. WAŻNY SŁOWNIK UCZELNIANY: Studenci często pytają o "średnią", ale w regulaminach i tabelach występuje to pod pojęciem "Łączna liczba punktów" lub "Minimalna liczba punktów". Traktuj te pojęcia jako jedno i to samo!
+    3. Jeśli odpowiedź NIE znajduje się w poniższych fragmentach, napisz dokładnie: "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
+    4. SŁOWNIK: "średnia" to w regulaminach "Łączna liczba punktów".
+    5. LOGIKA STYPENDIÓW: Tabela z kwotami Stypendium Rektora jest uniwersalna dla wszystkich kierunków! Kiedy student pyta o kwotę, weź jego średnią z historii rozmowy i od razu odczytaj kwotę z tej tabeli.
 
-    HISTORIA OSTATNIEJ ROZMOWY (żebyś wiedział o czym mówimy):
-    {history_text}
-
-    FRAGMENTY REGULAMINU (Dostarczone przez system):
+    FRAGMENTY REGULAMINU:
     {context}
-
-    AKTUALNE PYTANIE STUDENTA:
-    {prompt}
-
-    ODPOWIEDŹ:
     """
 
+    # Budujemy strukturę konwersacji tak, jak wymaga tego model OpenAI
+    api_messages = [{"role": "system", "content": system_prompt}]
+    
+    # Ładujemy do silnika AI historię ostatnich 6 wiadomości (żeby doskonale pamietał wątek)
+    for msg in st.session_state.messages[-6:]:
+        api_messages.append({"role": msg["role"], "content": msg["content"]})
+
+    # Odpytanie modelu AI
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "user", "content": full_prompt}]
+        messages=api_messages
     )
 
     answer = response.choices[0].message.content
