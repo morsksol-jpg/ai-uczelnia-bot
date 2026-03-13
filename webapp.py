@@ -63,15 +63,28 @@ def load_and_prepare_db(_api_key):
 
     # Zoptymalizowane cięcie tekstu dla PDFów
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800, 
-        chunk_overlap=200,
+        chunk_size=600, 
+        chunk_overlap=120,
         separators=["\n\n", "\n", " ", ""]
     )
     texts = text_splitter.split_documents(documents)
     
     # Tworzymy czysty magazyn
-    db = Chroma.from_documents(texts, embeddings, collection_name="openai_radar_v2")
-    return db
+    persist_directory = "vector_db"
+
+if os.path.exists(persist_directory):
+    db = Chroma(
+        persist_directory=persist_directory,
+        embedding_function=embeddings
+    )
+else:
+    db = Chroma.from_documents(
+        texts,
+        embeddings,
+        collection_name="openai_radar_v2",
+        persist_directory=persist_directory
+    )
+    db.persist()
 
 # Uruchomienie bazy
 db = load_and_prepare_db(api_key)
@@ -101,7 +114,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
 
     # --- ZBIERANIE KONTEKSTU ---
     # Wyszukiwanie tylko na podstawie najnowszego pytania, aby uniknąć rozmycia wektora
-    results = db.max_marginal_relevance_search(prompt, k=12, fetch_k=30)
+    results = db.max_marginal_relevance_search(prompt, k=8, fetch_k=20)
     
     unique_texts = []
     for r in results:
