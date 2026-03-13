@@ -149,8 +149,7 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     ZASADY:
     1. Opieraj się WYŁĄCZNIE na dostarczonym tekście.
     2. Jeśli w tekście są podane konkretne kwoty, progi lub średnie, zacytuj je.
-    3. Jeśli odpowiedź NIE znajduje się w poniższych fragmentach, napisz dokładnie: "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
-    4. SŁOWNIK: "średnia" to w regulaminach "Łączna liczba punktów".
+    3. Formułkę "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem." stosuj WYŁĄCZNIE wtedy, gdy we fragmentach nie ma absolutnie żadnej odpowiedzi. Jeśli udzielasz odpowiedzi, NIGDY nie doklejaj do niej tej formułki.
     5. LOGIKA STYPENDIÓW: Tabela z kwotami Stypendium Rektora jest uniwersalna dla wszystkich kierunków! Kiedy student pyta o kwotę, weź jego średnią z historii rozmowy i od razu odczytaj kwotę z tej tabeli.
     6. LOGIKA ODLEGŁOŚCI: Jeśli kwota dofinansowania zależy od kilometrów (np. koszty podróży Erasmus), zapytaj studenta o dokładną odległość w kilometrach, zamiast podawać stawkę w ciemno.
     7. Zwracaj szczególną uwagę na § 9 ust. 4 regulaminu – stypendia są wypłacane regularnie co miesiąc aż do czerwca włącznie, a daty grudzień/maj są jedynie terminami ostatecznymi dla skumulowanych wypłat z początku semestrów.
