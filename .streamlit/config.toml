@@ -1,0 +1,15 @@
+[theme]
+# Główny kolor akcentów (przyciski, ładowanie) - głęboki niebieski
+primaryColor = "#003366" 
+
+# Kolor tła aplikacji (czysty, profesjonalny biały)
+backgroundColor = "#FFFFFF" 
+
+# Kolor tła panelu bocznego (bardzo jasny szary/błękitny, żeby się odcinał)
+secondaryBackgroundColor = "#F4F6F9" 
+
+# Kolor tekstu (czarny, dla maksymalnej czytelności)
+textColor = "#000000" 
+
+# Nowoczesna, gładka czcionka
+font = "sans serif"
