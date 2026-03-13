@@ -140,7 +140,9 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         if r.page_content not in unique_texts:
             unique_texts.append(r.page_content)
     context = "\n\n---\n\n".join(unique_texts)
-
+    # --- RENTGEN (TYLKO DLA CIEBIE DO TESTÓW) ---
+    with st.expander("🔍 Podgląd radaru (Co znalazł system RAG?)"):
+        st.write(context if context else "Pusto! Radar nic nie pobrał z bazy.")
     # --- NATYWNA PAMIĘĆ OPENAI ---
     system_prompt = f"""
     Jesteś profesjonalnym i pomocnym asystentem studenta uczelni {wybrana_uczelnia.upper()}.
