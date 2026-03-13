@@ -30,7 +30,6 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("#### Konfiguracja")
-    # Zdefiniuj listę uczelni (nazwy muszą odpowiadać nazwom podfolderów w 'documents')
     lista_uczelni = ["merito", "uw", "uj"]
     wybrana_uczelnia = st.selectbox("Wybierz swoją uczelnię:", lista_uczelni)
     
@@ -47,7 +46,7 @@ if not api_key:
     st.error("Brak klucza API OpenAI! Skonfiguruj plik .env lub Streamlit Secrets.")
     st.stop()
 
-# 1. Ładowanie bazy z optymalizacją pod wiele uczelni
+# 1. Ładowanie bazy z optymalizacją pod wiele uczelni i twardym formatowaniem
 @st.cache_resource(show_spinner="Ładowanie dokumentów uczelni...")
 def load_and_prepare_db(_api_key):
     embeddings = OpenAIEmbeddings(api_key=_api_key, model="text-embedding-3-small")
@@ -55,7 +54,6 @@ def load_and_prepare_db(_api_key):
     base_folder = "documents"
 
     if os.path.exists(base_folder):
-        # Przeszukujemy podfoldery (każdy podfolder to inna uczelnia)
         for uczelnia_folder in os.listdir(base_folder):
             uczelnia_path = os.path.join(base_folder, uczelnia_folder)
             
@@ -66,9 +64,9 @@ def load_and_prepare_db(_api_key):
                         loader = PyPDFLoader(file_path)
                         loaded_docs = loader.load()
                         
-                        # Wstrzykiwanie metadanych: doklejamy ID uczelni do każdego fragmentu
+                        # Wstrzykiwanie metadanych: pancerne małe litery (.lower())
                         for doc in loaded_docs:
-                            doc.metadata["uczelnia"] = uczelnia_folder
+                            doc.metadata["uczelnia"] = uczelnia_folder.lower()
                         
                         documents.extend(loaded_docs)
     else:
@@ -79,7 +77,6 @@ def load_and_prepare_db(_api_key):
         st.warning("Nie znaleziono żadnych plików PDF w podfolderach uczelni.")
         return None
 
-    # Zoptymalizowane cięcie tekstu dla PDFów
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=800, 
         chunk_overlap=200,
@@ -87,8 +84,8 @@ def load_and_prepare_db(_api_key):
     )
     texts = text_splitter.split_documents(documents)
     
-    # Tworzymy nową, wielodostępną kolekcję
-    db = Chroma.from_documents(texts, embeddings, collection_name="multi_uni_radar_v1")
+    # BOMBA NA CACHE: v3 w nazwie kolekcji zmusza Chromę do zbudowania bazy od zera
+    db = Chroma.from_documents(texts, embeddings, collection_name="multi_uni_radar_v3")
     return db
 
 # Uruchomienie bazy
@@ -116,7 +113,6 @@ for message in st.session_state.messages:
 # Główne pole wprowadzania pytań
 if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na stypendium rektora?)"):
 
-    # Zapisz pytanie użytkownika do historii
     st.session_state.messages.append({"role": "user", "content": prompt})
     
     with st.chat_message("user"):
@@ -126,13 +122,12 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
         st.stop()
 
-    # --- ZBIERANIE KONTEKSTU Z FILTREM UCZELNI ---
-    # Wyszukiwanie tylko w dokumentach wybranej uczelni
+    # --- ZBIERANIE KONTEKSTU Z FILTREM UCZELNI (z wymuszeniem .lower()) ---
     results = db.max_marginal_relevance_search(
         prompt, 
         k=12, 
         fetch_k=30,
-        filter={"uczelnia": wybrana_uczelnia}
+        filter={"uczelnia": wybrana_uczelnia.lower()}
     )
     
     unique_texts = []
@@ -140,9 +135,11 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         if r.page_content not in unique_texts:
             unique_texts.append(r.page_content)
     context = "\n\n---\n\n".join(unique_texts)
-    # --- RENTGEN (TYLKO DLA CIEBIE DO TESTÓW) ---
+
+    # --- RENTGEN (Do debugowania) ---
     with st.expander("🔍 Podgląd radaru (Co znalazł system RAG?)"):
         st.write(context if context else "Pusto! Radar nic nie pobrał z bazy.")
+
     # --- NATYWNA PAMIĘĆ OPENAI ---
     system_prompt = f"""
     Jesteś profesjonalnym i pomocnym asystentem studenta uczelni {wybrana_uczelnia.upper()}.
@@ -151,7 +148,8 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     ZASADY:
     1. Opieraj się WYŁĄCZNIE na dostarczonym tekście.
     2. Jeśli w tekście są podane konkretne kwoty, progi lub średnie, zacytuj je.
-    3. Formułkę "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem." stosuj WYŁĄCZNIE wtedy, gdy we fragmentach nie ma absolutnie żadnej odpowiedzi. Jeśli udzielasz odpowiedzi, NIGDY nie doklejaj do niej tej formułki.
+    3. Formułkę "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem." stosuj WYŁĄCZNIE wtedy, gdy we fragmentach nie ma absolutnie żadnej odpowiedzi. Jeśli udzielasz jakiejkolwiek merytorycznej odpowiedzi, NIGDY nie doklejaj tej formułki.
+    4. SŁOWNIK: "średnia" to w regulaminach "Łączna liczba punktów".
     5. LOGIKA STYPENDIÓW: Tabela z kwotami Stypendium Rektora jest uniwersalna dla wszystkich kierunków! Kiedy student pyta o kwotę, weź jego średnią z historii rozmowy i od razu odczytaj kwotę z tej tabeli.
     6. LOGIKA ODLEGŁOŚCI: Jeśli kwota dofinansowania zależy od kilometrów (np. koszty podróży Erasmus), zapytaj studenta o dokładną odległość w kilometrach, zamiast podawać stawkę w ciemno.
     7. Zwracaj szczególną uwagę na § 9 ust. 4 regulaminu – stypendia są wypłacane regularnie co miesiąc aż do czerwca włącznie, a daty grudzień/maj są jedynie terminami ostatecznymi dla skumulowanych wypłat z początku semestrów.
@@ -161,14 +159,11 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     {context}
     """
 
-    # Budujemy strukturę konwersacji
     api_messages = [{"role": "system", "content": system_prompt}]
     
-    # Ładujemy do silnika AI historię ostatnich 6 wiadomości
     for msg in st.session_state.messages[-6:]:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Odpytanie modelu AI
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=api_messages
@@ -179,5 +174,4 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     with st.chat_message("assistant"):
         st.markdown(answer)
 
-    # Zapisz odpowiedź bota do historii
     st.session_state.messages.append({"role": "assistant", "content": answer})
