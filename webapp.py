@@ -11,144 +11,172 @@ from langchain_openai import OpenAIEmbeddings
 # Ładowanie zmiennych środowiskowych
 load_dotenv()
 
-# --- TRYB PRO: Ukrywanie domyślnego menu i stopki Streamlit ---
+# --- KONFIGURACJA STRONY ---
 st.set_page_config(page_title="SAM - Studencki Asystent Merito", page_icon="🎓")
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-# -------------------------------------------------------------
 
-# --- PANEL BOCZNY (PRAWA AUTORSKIE) ---
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# --- SIDEBAR ---
 with st.sidebar:
     st.markdown("### 🎓 SAM")
-    st.markdown("Studencki Asystent Merito oparty na zaawansowanej architekturze RAG.")
+    st.markdown("Studencki Asystent Merito oparty na architekturze RAG.")
     st.markdown("---")
     st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
-# --------------------------------------
 
 st.title("🎓 SAM – Studencki Asystent Merito")
 
-# Pobranie klucza na samym starcie
+# Pobranie klucza API
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
 
 if not api_key:
-    st.error("Brak klucza API OpenAI! Skonfiguruj plik .env lub Streamlit Secrets.")
+    st.error("Brak klucza API OpenAI! Skonfiguruj .env lub Streamlit Secrets.")
     st.stop()
 
-# 1. Ładowanie bazy z optymalizacją - radar pracuje na serwerach OpenAI
+
+# ==============================
+# FUNKCJA ŁADOWANIA BAZY
+# ==============================
+
 @st.cache_resource(show_spinner="Ładowanie dokumentów uczelni...")
 def load_and_prepare_db(_api_key):
-    embeddings = OpenAIEmbeddings(api_key=_api_key, model="text-embedding-3-small")
+
+    embeddings = OpenAIEmbeddings(
+        api_key=_api_key,
+        model="text-embedding-3-small"
+    )
+
+    persist_directory = "vector_db"
+
+    # Jeśli baza istnieje – wczytaj ją
+    if os.path.exists(persist_directory):
+
+        db = Chroma(
+            persist_directory=persist_directory,
+            embedding_function=embeddings
+        )
+
+        return db
+
+    # Jeśli baza nie istnieje – buduj ją z PDF
     documents = []
     folder = "documents"
 
-    if os.path.exists(folder):
-        for filename in os.listdir(folder):
-            if filename.endswith(".pdf"):
-                file_path = os.path.join(folder, filename)
-                loader = PyPDFLoader(file_path)
-                documents.extend(loader.load())
-    else:
+    if not os.path.exists(folder):
         st.error(f"Brak folderu '{folder}' z dokumentami!")
         return None
-    
+
+    for filename in os.listdir(folder):
+
+        if filename.endswith(".pdf"):
+
+            file_path = os.path.join(folder, filename)
+
+            loader = PyPDFLoader(file_path)
+
+            documents.extend(loader.load())
+
     if not documents:
-        st.warning("Nie znaleziono żadnych plików PDF w folderze documents.")
+        st.warning("Nie znaleziono plików PDF w folderze documents.")
         return None
 
-    # Zoptymalizowane cięcie tekstu dla PDFów
+    # Chunkowanie dokumentów
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=600, 
+        chunk_size=600,
         chunk_overlap=120,
         separators=["\n\n", "\n", " ", ""]
     )
-    texts = text_splitter.split_documents(documents)
-    
-    # Tworzymy czysty magazyn
-    persist_directory = "vector_db"
 
-if os.path.exists(persist_directory):
-    db = Chroma(
-        persist_directory=persist_directory,
-        embedding_function=embeddings
-    )
-else:
+    texts = text_splitter.split_documents(documents)
+
+    # Tworzenie bazy wektorowej
     db = Chroma.from_documents(
         texts,
         embeddings,
         collection_name="openai_radar_v2",
         persist_directory=persist_directory
     )
+
     db.persist()
 
-# Uruchomienie bazy
+    return db
+
+
+# ==============================
+# URUCHOMIENIE SYSTEMU
+# ==============================
+
 db = load_and_prepare_db(api_key)
+
 client = OpenAI(api_key=api_key)
 
-# Inicjalizacja pamięci rozmowy czatu
+# Historia czatu
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Wyświetlanie historii czatu
+# Wyświetlenie historii
 for message in st.session_state.messages:
+
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Główne pole wprowadzania pytań
+
+# ==============================
+# OBSŁUGA PYTAŃ
+# ==============================
+
 if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na stypendium rektora?)"):
 
-    # Zapisz pytanie użytkownika do historii
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
     if db is None:
-        st.error("Baza dokumentów jest pusta. Bot nie ma z czego czytać.")
+        st.error("Baza dokumentów jest pusta.")
         st.stop()
 
-    # --- ZBIERANIE KONTEKSTU ---
-    # Wyszukiwanie tylko na podstawie najnowszego pytania, aby uniknąć rozmycia wektora
-    results = db.max_marginal_relevance_search(prompt, k=8, fetch_k=20)
-    
+    # Wyszukiwanie kontekstu
+    results = db.max_marginal_relevance_search(
+        prompt,
+        k=8,
+        fetch_k=20
+    )
+
     unique_texts = []
+
     for r in results:
         if r.page_content not in unique_texts:
             unique_texts.append(r.page_content)
+
     context = "\n\n---\n\n".join(unique_texts)
 
-    # --- NATYWNA PAMIĘĆ OPENAI (Lekarstwo ostateczne) ---
     system_prompt = f"""
-    Jesteś profesjonalnym i pomocnym asystentem studenta.
-    Odpowiadasz na pytania na podstawie PONIŻSZYCH fragmentów regulaminu uczelni.
+Jesteś profesjonalnym asystentem studenta.
 
-    ZASADY:
-    1. Opieraj się WYŁĄCZNIE na dostarczonym tekście.
-    2. Jeśli w tekście są podane konkretne kwoty, progi lub średnie, zacytuj je.
-    3. Jeśli odpowiedź NIE znajduje się w poniższych fragmentach, napisz dokładnie: "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
-    4. SŁOWNIK: "średnia" to w regulaminach "Łączna liczba punktów".
-    5. LOGIKA STYPENDIÓW: Tabela z kwotami Stypendium Rektora jest uniwersalna dla wszystkich kierunków! Kiedy student pyta o kwotę, weź jego średnią z historii rozmowy i od razu odczytaj kwotę z tej tabeli.
-    6. LOGIKA ODLEGŁOŚCI: Jeśli kwota dofinansowania zależy od kilometrów (np. koszty podróży Erasmus), zapytaj studenta o dokładną odległość w kilometrach, zamiast podawać stawkę w ciemno.
-    7. Zwracaj szczególną uwagę na § 9 ust. 4 regulaminu – stypendia są wypłacane regularnie co miesiąc aż do czerwca włącznie, a daty grudzień/maj są jedynie terminami ostatecznymi dla skumulowanych wypłat z początku semestrów.
-    8. Analizuj intencję użytkownika. Pytania o to "jak zostać studentem" traktuj szeroko, jako zapytania o proces rekrutacji i wymagane w nim dokumenty.
+Odpowiadasz WYŁĄCZNIE na podstawie fragmentów regulaminu uczelni.
 
-    FRAGMENTY REGULAMINU:
-    {context}
-    """
+ZASADY:
+1. Jeśli odpowiedź znajduje się w tekście – podaj ją.
+2. Jeśli nie ma informacji – napisz:
+"Przepraszam, ale nie znalazłem tej informacji w regulaminie. Skontaktuj się z dziekanatem."
 
-    # Budujemy strukturę konwersacji tak, jak wymaga tego model OpenAI
+FRAGMENTY REGULAMINU:
+
+{context}
+"""
+
     api_messages = [{"role": "system", "content": system_prompt}]
-    
-    # Ładujemy do silnika AI historię ostatnich 6 wiadomości (żeby doskonale pamietał wątek)
-    for msg in st.session_state.messages[-6:]:
-        api_messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Odpytanie modelu AI
+    for msg in st.session_state.messages[-6:]:
+        api_messages.append(msg)
+
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=api_messages
@@ -159,5 +187,4 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     with st.chat_message("assistant"):
         st.markdown(answer)
 
-    # Zapisz odpowiedź bota do historii
     st.session_state.messages.append({"role": "assistant", "content": answer})
