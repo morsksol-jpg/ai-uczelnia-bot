@@ -12,7 +12,7 @@ from langchain_openai import OpenAIEmbeddings
 load_dotenv()
 
 # --- TRYB PRO: Ukrywanie domyślnego menu i stopki Streamlit ---
-st.set_page_config(page_title="Bot Uczelni", page_icon="🎓")
+st.set_page_config(page_title="SAM - Studencki Asystent Merito", page_icon="🎓")
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -25,13 +25,13 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # --- PANEL BOCZNY (PRAWA AUTORSKIE) ---
 with st.sidebar:
-    st.markdown("### 🎓 Informacje o systemie")
-    st.markdown("Inteligentny asystent studenta oparty na architekturze RAG.")
+    st.markdown("### 🎓 SAM")
+    st.markdown("Studencki Asystent Merito oparty na zaawansowanej architekturze RAG.")
     st.markdown("---")
     st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
 # --------------------------------------
 
-st.title("🎓 Bot uczelni – przewodnik po biurokracji")
+st.title("🎓 SAM – Studencki Asystent Merito")
 
 # Pobranie klucza na samym starcie
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
