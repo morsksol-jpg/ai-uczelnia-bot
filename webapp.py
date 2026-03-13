@@ -5,7 +5,7 @@ from openai import OpenAI
 
 from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 
 # Ładowanie zmiennych środowiskowych
@@ -61,7 +61,12 @@ def load_and_prepare_db(_api_key):
         st.warning("Nie znaleziono żadnych plików PDF w folderze documents.")
         return None
 
-    text_splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=150)
+    # Zoptymalizowane cięcie tekstu dla PDFów
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800, 
+        chunk_overlap=200,
+        separators=["\n\n", "\n", " ", ""]
+    )
     texts = text_splitter.split_documents(documents)
     
     # Tworzymy czysty magazyn
@@ -95,9 +100,8 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
         st.stop()
 
     # --- ZBIERANIE KONTEKSTU ---
-    user_queries = [msg["content"] for msg in st.session_state.messages[-4:] if msg["role"] == "user"]
-    search_query = " ".join(user_queries)
-    results = db.max_marginal_relevance_search(search_query, k=12, fetch_k=30)
+    # Wyszukiwanie tylko na podstawie najnowszego pytania, aby uniknąć rozmycia wektora
+    results = db.max_marginal_relevance_search(prompt, k=12, fetch_k=30)
     
     unique_texts = []
     for r in results:
@@ -117,7 +121,9 @@ if prompt := st.chat_input("Zadaj pytanie (np. jaka jest minimalna średnia na s
     4. SŁOWNIK: "średnia" to w regulaminach "Łączna liczba punktów".
     5. LOGIKA STYPENDIÓW: Tabela z kwotami Stypendium Rektora jest uniwersalna dla wszystkich kierunków! Kiedy student pyta o kwotę, weź jego średnią z historii rozmowy i od razu odczytaj kwotę z tej tabeli.
     6. LOGIKA ODLEGŁOŚCI: Jeśli kwota dofinansowania zależy od kilometrów (np. koszty podróży Erasmus), zapytaj studenta o dokładną odległość w kilometrach, zamiast podawać stawkę w ciemno.
-    7. "Zwracaj szczególną uwagę na § 9 ust. 4 regulaminu – stypendia są wypłacane regularnie co miesiąc aż do czerwca włącznie, a daty grudzień/maj są jedynie terminami ostatecznymi dla skumulowanych wypłat z początku semestrów."
+    7. Zwracaj szczególną uwagę na § 9 ust. 4 regulaminu – stypendia są wypłacane regularnie co miesiąc aż do czerwca włącznie, a daty grudzień/maj są jedynie terminami ostatecznymi dla skumulowanych wypłat z początku semestrów.
+    8. Analizuj intencję użytkownika. Pytania o to "jak zostać studentem" traktuj szeroko, jako zapytania o proces rekrutacji i wymagane w nim dokumenty.
+
     FRAGMENTY REGULAMINU:
     {context}
     """
