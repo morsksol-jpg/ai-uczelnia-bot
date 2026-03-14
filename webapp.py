@@ -129,6 +129,8 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     2. Jeśli odpowiedź nie istnieje w tekście, napisz: "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
     3. Nigdy nie dopisuj powyższej formułki, jeśli udzieliłeś merytorycznej odpowiedzi.
     4. Analizuj intencje – pytania o "ile osób" kojarz z sekcjami o liczebności grup lub komitetów założycielskich.
+    5. LOGIKA BRAKU DANYCH (Stypendia): Jeśli student pyta o stypendium na konkretnym roku (np. "ile dostanę na 2 roku?") lub pyta ogólnie o kwotę, absolutnie NIE odsyłaj go do dziekanatu! Wyjaśnij w przyjazny sposób, że stypendium rektora zależy od ŚREDNIEJ OCEN (łącznej liczby punktów) z poprzedniego roku akademickiego. Wyświetl tabelę progów stypendialnych (jeśli masz ją w kontekście) i na końcu zapytaj: "Jaką średnią udało Ci się uzyskać? Podaj ją, a powiem Ci dokładnie, w jaki próg wpadasz."
+    6. LOGIKA BRAKU DANYCH (Koszty podróży/Erasmus): Jeśli odpowiedź o dofinansowaniu zależy od kilometrów, a użytkownik ich nie podał, nie odrzucaj pytania. Poproś go o podanie odległości lub miasta docelowego.
 
     KONTEKST:
     {context}
