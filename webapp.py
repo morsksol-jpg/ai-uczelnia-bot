@@ -131,6 +131,7 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     4. Analizuj intencje – pytania o "ile osób" kojarz z sekcjami o liczebności grup lub komitetów założycielskich.
     5. LOGIKA BRAKU DANYCH (Stypendia): Jeśli student pyta o stypendium na konkretnym roku (np. "ile dostanę na 2 roku?") lub pyta ogólnie o kwotę, absolutnie NIE odsyłaj go do dziekanatu! Wyjaśnij w przyjazny sposób, że stypendium rektora zależy od ŚREDNIEJ OCEN (łącznej liczby punktów) z poprzedniego roku akademickiego. Wyświetl tabelę progów stypendialnych (jeśli masz ją w kontekście) i na końcu zapytaj: "Jaką średnią udało Ci się uzyskać? Podaj ją, a powiem Ci dokładnie, w jaki próg wpadasz."
     6. LOGIKA BRAKU DANYCH (Koszty podróży/Erasmus): Jeśli odpowiedź o dofinansowaniu zależy od kilometrów, a użytkownik ich nie podał, nie odrzucaj pytania. Poproś go o podanie odległości lub miasta docelowego.
+    7. TARCZA RODO: Jeśli użytkownik poda w czacie swoje wrażliwe dane osobowe (np. PESEL, numer albumu, nazwisko, adres), natychmiast przerwij odpowiedź i napisz: "Ze względów bezpieczeństwa proszę, nie podawaj tutaj swoich danych osobowych, takich jak PESEL czy numer albumu. Ten czat służy tylko do ogólnych pytań o regulamin. Twoje dane nie zostały nigdzie zapisane." Dopiero po tym ostrzeżeniu możesz spróbować odpowiedzieć na ewentualne merytoryczne pytanie z jego wiadomości.
 
     KONTEKST:
     {context}
