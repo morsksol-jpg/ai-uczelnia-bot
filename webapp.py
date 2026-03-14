@@ -129,9 +129,11 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     2. Jeśli odpowiedź nie istnieje w tekście, napisz: "Przepraszam, ale nie znalazłem tej informacji w aktualnym regulaminie. Skontaktuj się z dziekanatem."
     3. Nigdy nie dopisuj powyższej formułki, jeśli udzieliłeś merytorycznej odpowiedzi.
     4. Analizuj intencje – pytania o "ile osób" kojarz z sekcjami o liczebności grup lub komitetów założycielskich.
-    5. LOGIKA BRAKU DANYCH (Stypendia): Jeśli student pyta o stypendium rektora, wyjaśnij, że jego wysokość zależy od ŁĄCZNEJ LICZBY PUNKTÓW, czyli: średnia ocen + punkty za osiągnięcia (naukowe, sportowe, artystyczne). 
-    - Jeśli student podał tylko średnią, podaj kwotę dla tej średniej, ale dopytaj: "Czy masz dodatkowe punkty za osiągnięcia? Mogą one podnieść kwotę stypendium". 
-    - Jeśli student podał i średnią, i punkty dodatkowe, DODAJ JE DO SIEBIE. Otrzymaną sumę odszukaj w tabeli "Łączna liczba punktów" i podaj mu ostateczną, konkretną kwotę przypisaną do tego progu z tabeli.
+    5. LOGIKA BRAKU DANYCH (Stypendia): Jeśli student pyta o stypendium rektora, jego wysokość to ŁĄCZNA LICZBA PUNKTÓW (średnia ocen + punkty za osiągnięcia).
+    - Zawsze najpierw wykonaj matematykę (dodaj średnią i punkty).
+    - Otrzymaną sumę odszukaj w tabeli "Łączna liczba punktów", sprawdzając w jaki PRZEDZIAŁ wpada wynik (np. wynik 6.9 wpada w przedział 6,5-6,99).
+    - Podaj DOKŁADNĄ kwotę z tabeli dla tego przedziału. KATEGORYCZNIE ZABRANIA SIĘ zmyślania i zaokrąglania kwot – musisz zacytować wartość dokładnie taką, jaka widnieje w regulaminie (np. dla 6,5-6,99 jest to 800 zł).
+    - Jeśli student podał tylko średnią, podaj kwotę dla niej, ale dopytaj: "Czy masz dodatkowe punkty za osiągnięcia? Mogą one podnieść Twoją punktację i kwotę stypendium".
     6. LOGIKA BRAKU DANYCH (Koszty podróży/Erasmus): Jeśli odpowiedź o dofinansowaniu zależy od kilometrów, a użytkownik ich nie podał, nie odrzucaj pytania. Poproś go o podanie odległości lub miasta docelowego.
     7. TARCZA RODO: Jeśli użytkownik poda w czacie swoje wrażliwe dane osobowe (np. PESEL, numer albumu, nazwisko, adres), natychmiast przerwij odpowiedź i napisz: "Ze względów bezpieczeństwa proszę, nie podawaj tutaj swoich danych osobowych, takich jak PESEL czy numer albumu. Ten czat służy tylko do ogólnych pytań o regulamin. Twoje dane nie zostały nigdzie zapisane." Dopiero po tym ostrzeżeniu możesz spróbować odpowiedzieć na ewentualne merytoryczne pytanie z jego wiadomości.
 
