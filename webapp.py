@@ -118,7 +118,17 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
         filter={"uczelnia": wybrana_uczelnia.lower()}
     )
     
-    context = "\n\n---\n\n".join([r.page_content for r in results])
+    # Budowanie kontekstu z nazwami plików i numerami stron
+    context_parts = []
+    for r in results:
+        # Wyciągamy samą nazwę pliku z długiej ścieżki (np. z "documents/merito/regulamin.pdf" robimy "regulamin.pdf")
+        plik = os.path.basename(r.metadata.get("source", "Regulamin"))
+        # PyPDFLoader liczy strony od 0, więc dodajemy 1, żeby było naturalnie
+        strona = r.metadata.get("page", 0) + 1 
+        tresc = r.page_content
+        context_parts.append(f"[ŹRÓDŁO - PLIK: {plik}, STRONA: {strona}]\n{tresc}")
+        
+    context = "\n\n---\n\n".join(context_parts)
 
     # Słownik z kontaktami "na sztywno" dla każdej uczelni
     kontakty_dziekanatow = {
