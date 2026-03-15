@@ -12,7 +12,9 @@ from langchain_openai import OpenAIEmbeddings
 load_dotenv()
 
 # --- KONFIGURACJA INTERFEJSU ---
-st.set_page_config(page_title="SAM - Studencki Asystent", page_icon="🎓")
+st.set_page_config(page_title="SAM - Smart Assistance Module", page_icon="🛡️", layout="wide")
+
+# Ukrycie standardowych elementów Streamlit
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -22,13 +24,19 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+# --- NOWY BRANDING (SAM) ---
+st.markdown("<h1 style='text-align: center; font-size: 60px;'>SAM</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 20px; font-weight: bold;'>Smart Assistance Module</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 16px; color: gray;'>AI system for organizational knowledge</p>", unsafe_allow_html=True)
+st.markdown("---")
+
 # --- PANEL BOCZNY ---
 with st.sidebar:
-    st.markdown("### 🎓 SAM")
-    st.markdown("Profesjonalny asystent studenta (Wersja 3.0)")
-    st.markdown("---")
+    st.markdown("### ⚙️ Konfiguracja Systemu")
     lista_uczelni = ["merito", "uw", "uj"]
-    wybrana_uczelnia = st.selectbox("Wybierz swoją uczelnię:", lista_uczelni)
+    wybrana_uczelnia = st.selectbox("Wybierz jednostkę organizacyjną:", lista_uczelni)
+    st.markdown("---")
+    st.info("Status: System Ready (v4.0)\n\nFidelity Mode: Active\nGDPR Shield: Active")
     st.markdown("---")
     st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
 
@@ -139,11 +147,12 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
 
     RULES:
     1. GDPR PRIVACY SHIELD (PRIORITY 1): If the user shares sensitive data (PESEL, student ID, Matrikelnummer, numer albumu, name, address), IMMEDIATELY stop and reply: "For security reasons, please do not share personal data here. Your data has not been saved." (TRANSLATE this warning into the user's language). Do not answer their question.
-    2. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
-    3. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
-    4. PRECISION AND FIDELITY (CRITICAL): Pay strict attention to adjectives and specific conditions in the text. If a rule applies to a specific type of event (e.g., "egzamin dyplomowy" / "diploma exam"), you MUST NOT generalize it to all exams. You must explicitly state the specific condition in your answer. If the user's question is broad, but the context is specific, clarify this limitation.
-    5. PROACTIVE CLARIFICATION: If the user's query is broad (e.g., "I failed an exam"), but the retrieved context only covers a highly specific scenario (e.g., "diploma exam"), you must point out this difference. You must state what the specific rule says, but immediately explicitly ASK the user to clarify their situation (e.g., "I found rules regarding a diploma exam. Is this what you mean, or are you asking about a regular session exam?"). Always translate this clarifying question into the user's language.
-    6. CITATIONS: At the very end of your response, you MUST append the source file and page number. 
+    2. Analyze intent – questions about "how many people" should be associated with sections about group size or founding committee requirements.
+    3. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
+    4. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
+    5. PRECISION AND FIDELITY (CRITICAL): Pay strict attention to adjectives and specific conditions in the text. If a rule applies to a specific type of event (e.g., "egzamin dyplomowy" / "diploma exam"), you MUST NOT generalize it to all exams. You must explicitly state the specific condition in your answer. If the user's question is broad, but the context is specific, clarify this limitation.
+    6. PROACTIVE CLARIFICATION: If the user's query is broad (e.g., "I failed an exam"), but the retrieved context only covers a highly specific scenario (e.g., "diploma exam"), you must point out this difference. You must state what the specific rule says, but immediately explicitly ASK the user to clarify their situation (e.g., "I found rules regarding a diploma exam. Is this what you mean, or are you asking about a regular session exam?"). Always translate this clarifying question into the user's language.
+    7. CITATIONS: At the very end of your response, you MUST append the source file and page number. 
     Format strictly as: "[Source: filename.pdf, Page: X]".
     CRITICAL WARNING: You MUST translate the words "Source" and "Page" into the EXACT language of the user's prompt! NEVER use Polish words like "Źródło" or "Strona" unless the user asked the question in Polish! If the user asks in English, you MUST use "[Source: ..., Page: ...]".
     CONTEXT:
