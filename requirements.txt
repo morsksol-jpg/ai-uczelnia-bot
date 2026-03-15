@@ -8,3 +8,4 @@ langchain-text-splitters
 chromadb
 pypdf
 tiktoken
+sentence-transformers
