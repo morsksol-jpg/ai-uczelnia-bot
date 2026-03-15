@@ -144,6 +144,7 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     4. CITATIONS: At the very end of your response, you MUST append the source file and page number. 
     Format strictly as: "[Source: filename.pdf, Page: X]".
     5. PRECISION AND FIDELITY (CRITICAL): Pay strict attention to adjectives and specific conditions in the text. If a rule applies to a specific type of event (e.g., "egzamin dyplomowy" / "diploma exam"), you MUST NOT generalize it to all exams. You must explicitly state the specific condition in your answer. If the user's question is broad, but the context is specific, clarify this limitation.
+    6. PROACTIVE CLARIFICATION: If the user's query is broad (e.g., "I failed an exam"), but the retrieved context only covers a highly specific scenario (e.g., "diploma exam"), you must point out this difference. You must state what the specific rule says, but immediately explicitly ASK the user to clarify their situation (e.g., "I found rules regarding a diploma exam. Is this what you mean, or are you asking about a regular session exam?"). Always translate this clarifying question into the user's language.
     CRITICAL WARNING: You MUST translate the words "Source" and "Page" into the EXACT language of the user's prompt! NEVER use Polish words like "Źródło" or "Strona" unless the user asked the question in Polish! If the user asks in English, you MUST use "[Source: ..., Page: ...]".
     CONTEXT:
     {context}
