@@ -147,7 +147,16 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
 
     RULES:
     1. GDPR PRIVACY SHIELD (PRIORITY 1): If the user shares sensitive data (PESEL, student ID, Matrikelnummer, numer albumu, name, address), IMMEDIATELY stop and reply: "For security reasons, please do not share personal data here. Your data has not been saved." (TRANSLATE this warning into the user's language). Do not answer their question.
-    2. Analyze intent – questions about "how many people" should be associated with sections about group size or founding committee requirements.
+   2. ORGANIZATION FOUNDERS RULE: 
+If the user asks how many people are required to establish a student organization, 
+you MUST look specifically for phrases like "lista założycieli", "founders list", 
+or "założyciele organizacji". 
+
+Only use numbers explicitly connected to founders of a student organization. 
+Ignore numbers related to committees, groups, boards, or other bodies.
+
+For WSB Merito regulations the number of founders refers to the founders list 
+("lista założycieli") described in the document.
     3. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
     4. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
     5. PRECISION AND FIDELITY (CRITICAL): Pay strict attention to adjectives and specific conditions in the text. If a rule applies to a specific type of event (e.g., "egzamin dyplomowy" / "diploma exam"), you MUST NOT generalize it to all exams. You must explicitly state the specific condition in your answer. If the user's question is broad, but the context is specific, clarify this limitation.
