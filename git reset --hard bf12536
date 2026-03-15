@@ -1,0 +1,101 @@
+[33ma5764d3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m remove config
+[33m8b15652[m set python 3.11
+[33ma532101[m dodano sentence-transformers
+[33me4cd981[m dodano reranker
+[33m2aa0502[m dodany crossover
+[33mbf12536[m dodane opcje w panelu bocznym
+[33mfccffba[m kolejna zmiana zasady 2
+[33m803995e[m zmiana zasady 2
+[33m23256a6[m zmiana nazwy programu
+[33m6db220d[m dodanie nowych zasad 4 i 5
+[33m8cca711[m nowa zasada krytyczna
+[33m2c6ff49[m nowy kod 3.0
+[33mc08e481[m nowe zasady
+[33ma562acc[m nowe dane
+[33m097050c[m nowy kod
+[33m752d83f[m dodane kontakty
+[33m652d82a[m zmiana pukntu 5.1
+[33md5f304d[m zmiana punktu 5
+[33mc02a09b[m tarcza rodo
+[33m0f8eae0[m prawa autorskie
+[33m22a921f[m zmiana panelu bocznego
+[33mf7557e4[m zmiana nazwy
+[33m6f94bd6[m zasada numer 6
+[33m0217b28[m wprowadzenie zasady numer 5
+[33mb4676c3[m poprawa multilanguage
+[33m9181abb[m powrót do poprzedniej wersji
+[33m9a9a076[m zmiany szczelności pytań
+[33mfde4987[m poprawa kodu
+[33ma33b434[m dodatkowy prompt
+[33m4bbf1db[m dodanie promptów językowych
+[33mc644388[m prawa autorskie
+[33m74a9ebb[m działanie multilanguage
+[33m3d2f506[m zmiana nazwy
+[33m6265d2e[m poprawka promptów
+[33m7002a2a[m precyzowanie promptów
+[33md29936d[m walka ze źródłem
+[33m4b5c0fc[m Fix uciętego kodu
+[33m74b0241[m zmiana całego kodu
+[33m5d2ba05[m poprawa kontekstu
+[33mb1cb343[m zmiana języka promptów
+[33mec869be[m poprawka promptów
+[33ma95d1a9[m  odpowiadaj w różnych językach
+[33m0009e84[m zasada dotycząca źródeł
+[33m12abea7[m dodanie paragrafów
+[33mee7198c[m dodano obecny kontakt
+[33m418153f[m Dodanie bazy kontaktow
+[33mbabaf7c[m naprawa regresji w logice drugiego roku
+[33m7c306dc[m usunięcie repliki pliku regulamin studiów
+[33m5e2009b[m poprawiona tabela poziomun stypendium
+[33m0f6cf06[m wprowadzenie punktów dodatkowych
+[33mc7e8a36[m Wprowadzenie tiktoken
+[33m2b53baf[m Wdrożenie ochrony RODO
+[33m9fe357d[m Wdrozenie logiki braku danych dla stypendiow i odleglosci
+[33m267c3dd[m Finalna optymalizacja RAG: zwiekszenie kontekstu i reset bazy v2
+[33m425730f[m Usuniecie modułu diagnostycznego - wersja prezentacyjna
+[33m1a7fc2b[m Zastosowanie pancernego kodu z resetem kolekcji v3
+[33m4ac75ec[m zmiana nazwy folderu
+[33mbdb1590[m regulamin sklepu
+[33me266507[m Poprawka promptu systemowego i ułożenia plików PDF
+[33m7b7c1d3[m Dodanie obsługi wielu uczelni i testowego regulaminu UW
+[33m175c4a5[m Naprawa błędu persist_directory i poprawa architektury RAG
+[33m7d0b092[m Optymalizacja RAG: persist Chroma DB i cache bazy
+[33m018353b[m Dodanie zarządzenia o organizacjach studenckich
+[33m884b6ab[m analiza intencji użytkownika
+[33m1714aeb[m poprawa logiki wyplat stypendiów paragraf 9
+[33mb31f68b[m poprawa nazwy folderu config
+[33m3b207e7[m poprawa nazwy folderu config
+[33mc39a6de[m dodanie barw Merito
+[33m580daa6[m dodanie pliku konfiguracyjnego z kolorami merito
+[33ma6b4fa7[m zmiana nazwy na SAM
+[33m1ab7d88[m dodanie bazy formularzy z linkiem do meritogo
+[33m0195dfe[m dodanie uchwaly rekrutacyjnej 24_25
+[33mabdd584[m dodanie regulaminu studiow
+[33md246fda[m dodanie zabezpieczenia przed zgadywaniem odleglosci i praw autorskich
+[33mfaa4729[m dodanie dokumentow erasmus
+[33m4cdc874[m przejscie na natywna pamiec konwersacyjna openai
+[33m6c1ea2c[m dodanie obslugi glosowej i ulatwien dostepu
+[33m88ba65d[m przejscie na natywna pamiec konwersacyjna openai
+[33me21b7f0[m teczka z historia dla urzednika
+[33m0ac0b8a[m zwiekszenie zasiegu radaru do 12
+[33m8f95c55[m wysylka wersji 2.2
+[33meae85fd[m wersja 2.0 - pamiec kontekstowa i tryb pro
+[33m61f9a69[m dodane nowe regulaminy
+[33mdb2c64d[m add cache
+[33m183bf4c[m add cache
+[33mbb3ce6e[m add cache
+[33m97b93aa[m add cache
+[33m6c28a56[m add cache
+[33m31b5d35[m add cache
+[33m6d5f330[m add cache
+[33m5dedf6e[m add cache
+[33m82cd332[m clean rag version
+[33m4004d22[m filter attachments
+[33m3b5150c[m debug rag
+[33m7281893[m fix vector db streamlit
+[33m5bd1723[m clean webapp version
+[33m7446e34[m fix indentation
+[33m3e73509[m fix prompt RAG
+[33mcab0c94[m auto build vector db
+[33meda9c1b[m dodany requirements.txt
+[33m89c7733[m pierwsza wersja bota uczelni
