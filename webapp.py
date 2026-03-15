@@ -143,6 +143,7 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     3. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
     4. CITATIONS: At the very end of your response, you MUST append the source file and page number. 
     Format strictly as: "[Source: filename.pdf, Page: X]".
+    5. PRECISION AND FIDELITY (CRITICAL): Pay strict attention to adjectives and specific conditions in the text. If a rule applies to a specific type of event (e.g., "egzamin dyplomowy" / "diploma exam"), you MUST NOT generalize it to all exams. You must explicitly state the specific condition in your answer. If the user's question is broad, but the context is specific, clarify this limitation.
     CRITICAL WARNING: You MUST translate the words "Source" and "Page" into the EXACT language of the user's prompt! NEVER use Polish words like "Źródło" or "Strona" unless the user asked the question in Polish! If the user asks in English, you MUST use "[Source: ..., Page: ...]".
     CONTEXT:
     {context}
