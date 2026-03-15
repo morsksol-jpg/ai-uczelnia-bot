@@ -135,6 +135,8 @@ if prompt := st.chat_input("Zadaj pytanie systemowi..."):
     3. PROACTIVE CLARIFICATION: If the query is broad but the rule is specific, ask for clarification in the user's language.
     4. CITATIONS: At the end of every answer, append: "[Source: filename.pdf, Page: X]". Always translate "Source" and "Page" to the user's language.
     5. DATA LIMIT: If information is missing, refer to the official contact point for {wybrana_uczelnia.upper()}.
+    6. NUMERICAL RIGOR: You must be extremely precise with numbers (dates, amounts, student counts). Never use "common knowledge" or typical values. If the document says "three", you MUST NOT say "five". If the document is unclear, state that you cannot find the exact number instead of guessing.
+
 
     CONTEXT (Use this to answer):
     {context}
@@ -143,8 +145,11 @@ if prompt := st.chat_input("Zadaj pytanie systemowi..."):
     for msg in st.session_state.messages[-6:]:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
 
-    response = client.chat.completions.create(model="gpt-4o-mini", messages=api_messages)
-    answer = response.choices[0].message.content
+    response = client.chat.completions.create(
+    model="gpt-4o-mini", 
+    messages=api_messages,
+    temperature=0  # To wyłącza kreatywność AI i zmusza do trzymania się faktów!
+)
 
     with st.chat_message("assistant"):
         st.markdown(answer)
