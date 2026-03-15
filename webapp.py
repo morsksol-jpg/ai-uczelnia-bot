@@ -141,7 +141,9 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     1. GDPR PRIVACY SHIELD (PRIORITY 1): If the user shares sensitive data (PESEL, student ID, Matrikelnummer, numer albumu, name, address), IMMEDIATELY stop and reply: "For security reasons, please do not share personal data here. Your data has not been saved." (TRANSLATE this warning into the user's language). Do not answer their question.
     2. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
     3. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
-    4. CITATIONS: Extract the FILE and PAGE from the context tags and append them at the end of your answer. You MUST translate the words "File" and "Page" into the user's language (e.g., English: [Source - File: name.pdf, Page: 5], German: [Quelle - Datei: name.pdf, Seite: 5], Polish: [Źródło - Plik: name.pdf, Strona: 5]).
+    4. CITATIONS: At the very end of your response, you MUST append the source file and page number. 
+    Format strictly as: "[Source: filename.pdf, Page: X]".
+    CRITICAL WARNING: You MUST translate the words "Source" and "Page" into the EXACT language of the user's prompt! NEVER use Polish words like "Źródło" or "Strona" unless the user asked the question in Polish! If the user asks in English, you MUST use "[Source: ..., Page: ...]".
 
     CONTEXT:
     {context}
