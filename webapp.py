@@ -44,7 +44,7 @@ with st.sidebar:
     🌍 **Multilingual:** Enabled
     """)
     st.markdown("---")
-    st.caption("Copyright (c) 2026 Seldon. All rights reserved.")
+    st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
 
 # Pobranie klucza API
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
