@@ -12,9 +12,7 @@ from langchain_openai import OpenAIEmbeddings
 load_dotenv()
 
 # --- KONFIGURACJA INTERFEJSU ---
-st.set_page_config(page_title="SAM - Smart Assistance Module", page_icon="🛡️", layout="wide")
-
-# Ukrycie standardowych elementów Streamlit
+st.set_page_config(page_title="SAM - Studencki Asystent", page_icon="🎓")
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -24,27 +22,17 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# --- NOWY BRANDING (SAM) ---
-st.markdown("<h1 style='text-align: center; font-size: 60px;'>SAM</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 20px; font-weight: bold;'>Smart Assistance Module</p>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-size: 16px; color: gray;'>AI system for organizational knowledge</p>", unsafe_allow_html=True)
-st.markdown("---")
-
 # --- PANEL BOCZNY ---
 with st.sidebar:
-    st.markdown("### ⚙️ Konfiguracja Systemu")
-    lista_uczelni = ["merito", "uw", "uj"]
-    wybrana_uczelnia = st.selectbox("Wybierz jednostkę organizacyjną:", lista_uczelni)
+    st.markdown("### 🎓 SAM")
+    st.markdown("Profesjonalny asystent studenta (Wersja 3.0)")
     st.markdown("---")
-    st.info("""
-    **System Status:** Ready (v4.2)
-    
-    🛡️ **Fidelity Mode:** Active
-    🔒 **GDPR Shield:** Active
-    🌍 **Multilingual:** Enabled
-    """)
+    lista_uczelni = ["merito", "uw", "uj"]
+    wybrana_uczelnia = st.selectbox("Wybierz swoją uczelnię:", lista_uczelni)
     st.markdown("---")
     st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
+
+st.title(f"🎓 SAM – Studencki Asystent ({wybrana_uczelnia.upper()})")
 
 # Pobranie klucza API
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
@@ -53,107 +41,117 @@ if not api_key:
     st.error("Brak klucza API OpenAI!")
     st.stop()
 
-# --- INICJALIZACJA BAZY WIEDZY ---
-@st.cache_resource(show_spinner="Inicjalizacja modułu wiedzy SAM...")
+# --- FUNKCJA ŁADOWANIA I OPTYMALIZACJI BAZY (V3) ---
+@st.cache_resource(show_spinner="Inicjalizacja szybkiej bazy wiedzy v3...")
 def load_and_prepare_db(_api_key):
     embeddings = OpenAIEmbeddings(api_key=_api_key, model="text-embedding-3-small")
-    persist_directory = "vector_db_v4_2"
-    collection_name = "sam_knowledge_v4_2"
+    
+    # ZMIANA NA V3: Zmuszamy chmurę do zbudowania bazy od nowa
+    persist_directory = "vector_db_v3"
+    collection_name_v3 = "sam_production_v3"
     
     if os.path.exists(persist_directory):
-        return Chroma(persist_directory=persist_directory, embedding_function=embeddings, collection_name=collection_name)
+        return Chroma(
+            persist_directory=persist_directory, 
+            embedding_function=embeddings, 
+            collection_name=collection_name_v3
+        )
 
     documents = []
     base_folder = "documents"
+    
     if os.path.exists(base_folder):
-        for unit_folder in os.listdir(base_folder):
-            unit_path = os.path.join(base_folder, unit_folder)
-            if os.path.isdir(unit_path):
-                for filename in os.listdir(unit_path):
+        for uczelnia_folder in os.listdir(base_folder):
+            uczelnia_path = os.path.join(base_folder, uczelnia_folder)
+            if os.path.isdir(uczelnia_path):
+                for filename in os.listdir(uczelnia_path):
                     if filename.endswith(".pdf"):
-                        loader = PyPDFLoader(os.path.join(unit_path, filename))
+                        loader = PyPDFLoader(os.path.join(uczelnia_path, filename))
                         loaded_docs = loader.load()
                         for doc in loaded_docs:
-                            doc.metadata["unit"] = unit_folder.lower()
+                            doc.metadata["uczelnia"] = uczelnia_folder.lower()
                         documents.extend(loaded_docs)
     
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=300)
     texts = text_splitter.split_documents(documents)
-    db = Chroma.from_documents(texts, embeddings, collection_name=collection_name, persist_directory=persist_directory)
+    
+    db = Chroma.from_documents(
+        texts, 
+        embeddings, 
+        collection_name=collection_name_v3, 
+        persist_directory=persist_directory
+    )
     return db
 
 db = load_and_prepare_db(api_key)
 client = OpenAI(api_key=api_key)
 
-# Pamięć sesji
+# Inicjalizacja i czyszczenie pamięci
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "last_unit" not in st.session_state:
-    st.session_state.last_unit = wybrana_uczelnia
 
-if st.session_state.last_unit != wybrana_uczelnia:
+if "ostatnia_uczelnia" not in st.session_state:
+    st.session_state.ostatnia_uczelnia = wybrana_uczelnia
+
+if st.session_state.ostatnia_uczelnia != wybrana_uczelnia:
     st.session_state.messages = []
-    st.session_state.last_unit = wybrana_uczelnia
+    st.session_state.ostatnia_uczelnia = wybrana_uczelnia
     st.rerun()
 
-# Wyświetlanie czatu
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- GŁÓWNA LOGIKA SYSTEMU ---
-if prompt := st.chat_input("Zadaj pytanie systemowi SAM..."):
+if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Wyszukiwanie w bazie (RAG)
     results = db.max_marginal_relevance_search(
-        prompt, k=15, fetch_k=30, filter={"unit": wybrana_uczelnia.lower()}
+        prompt, 
+        k=25, 
+        fetch_k=50,
+        filter={"uczelnia": wybrana_uczelnia.lower()}
     )
     
+    # ZMIANA: Czyste tagi maszynowe do cytowań
     context_parts = []
     for r in results:
         plik = os.path.basename(r.metadata.get("source", "Document"))
         strona = r.metadata.get("page", 0) + 1 
-        context_parts.append(f"[FILE: {plik}, PAGE: {strona}]\n{r.page_content}")
+        tresc = r.page_content
+        context_parts.append(f"[FILE: {plik}, PAGE: {strona}]\n{tresc}")
+        
     context = "\n\n---\n\n".join(context_parts)
 
-    # --- SYSTEM PROMPT V4.2 (Krzysztof Adamiak Edition) ---
-    # --- SYSTEM PROMPT V4.3 (KRZYSZTOF ADAMIAK - SECURITY OVERRIDE) ---
-    system_prompt = f"""
-    You are SAM (Smart Assistance Module), a sophisticated AI system for organizational knowledge created by Krzysztof Adamiak.
+    kontakty_dziekanatow = {
+        "merito": "Dziekanat Merito Szczecin: ul. Śniadeckich 3, Tel: +48 91 422 74 44, E-mail: dziekanat@szczecin.merito.pl",
+        "uw": "Dziekanat UW: ul. Krakowskie Przedmieście 26/28, 00-927 Warszawa",
+        "uj": "Dziekanat UJ: ul. Gołębia 24, 31-007 Kraków"
+    }
     
-    STRICT LANGUAGE RULE:
-    - Identify the language of the user's question and respond EXCLUSIVELY in that language.
-    - Translate all context information and source tags (Source/Page) to that language.
+    obecny_kontakt = kontakty_dziekanatow.get(wybrana_uczelnia.lower(), "Contact your university's main office.")
 
-    CORE RULES:
-    1. GDPR SHIELD: If personal data (name, ID, PESEL) is detected, stop immediately and issue a warning.
-    2. FIDELITY & NUMERICAL RIGOR: Be extremely precise with numbers. If the document says "three", you MUST NOT say "five". No generalizations allowed.
-    3. MANDATORY AMBIGUITY CHECK (CRITICAL): If a user query (e.g., "failed exam") relates to more than one distinct procedure in the context (e.g., "session exam" vs "diploma exam"), you are STRICTLY FORBIDDEN from providing a detailed answer for either. 
-    4. CLARIFICATION PROCESS: In case of ambiguity, you MUST:
-       a) State that you found multiple relevant procedures.
-       b) List the specific types/categories found.
-       c) Ask the user to clarify which one they are referring to.
-    5. CITATIONS: Append: "[Source: filename.pdf, Page: X]" at the end of every response. 
-    6. DATA LIMIT: If information is missing or unclear, refer to the official contact point for {wybrana_uczelnia.upper()}.
+    # ZMIANA: Twardy anglojęzyczny prompt kontrolujący model AI
+    system_prompt = f"""
+    You are a professional student assistant for {wybrana_uczelnia.upper()} university.
+    CRITICAL DIRECTIVE: You MUST answer in the EXACT SAME LANGUAGE that the user used in their prompt. If the user asks in English, reply in English. If German, reply in German. If Polish, reply in Polish. NO EXCEPTIONS.
+
+    RULES:
+    1. GDPR PRIVACY SHIELD (PRIORITY 1): If the user shares sensitive data (PESEL, student ID, Matrikelnummer, numer albumu, name, address), IMMEDIATELY stop and reply: "For security reasons, please do not share personal data here. Your data has not been saved." (TRANSLATE this warning into the user's language). Do not answer their question.
+    2. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
+    3. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
+    4. CITATIONS: Extract the FILE and PAGE from the context tags and append them at the end of your answer. You MUST translate the words "File" and "Page" into the user's language (e.g., English: [Source - File: name.pdf, Page: 5], German: [Quelle - Datei: name.pdf, Seite: 5], Polish: [Źródło - Plik: name.pdf, Strona: 5]).
 
     CONTEXT:
     {context}
     """
 
     api_messages = [{"role": "system", "content": system_prompt}]
-    # Przesyłamy historię czatu (ostatnie 6 wiadomości)
     for msg in st.session_state.messages[-6:]:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Wywołanie modelu z zerową temperaturą (Zero Creativity = High Fact Fidelity)
-    response = client.chat.completions.create(
-        model="gpt-4o-mini", 
-        messages=api_messages,
-        temperature=0
-    )
+    response = client.chat.completions.create(model="gpt-4o-mini", messages=api_messages)
     answer = response.choices[0].message.content
 
     with st.chat_message("assistant"):
