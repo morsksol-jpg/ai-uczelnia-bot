@@ -36,7 +36,13 @@ with st.sidebar:
     lista_uczelni = ["merito", "uw", "uj"]
     wybrana_uczelnia = st.selectbox("Wybierz jednostkę organizacyjną:", lista_uczelni)
     st.markdown("---")
-    st.info("Status: System Ready (v4.0)\n\nFidelity Mode: Active\nGDPR Shield: Active")
+    st.info("""
+    **System Status:** Ready (v4.0)
+    
+    🛡️ **Fidelity Mode:** Active
+    🔒 **GDPR Shield:** Active
+    🌍 **Multilingual:** Enabled
+    """)
     st.markdown("---")
     st.caption("Copyright (c) 2026 Seldon. All rights reserved.")
 
