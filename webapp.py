@@ -141,4 +141,19 @@ if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
     1. GDPR PRIVACY SHIELD (PRIORITY 1): If the user shares sensitive data (PESEL, student ID, Matrikelnummer, numer albumu, name, address), IMMEDIATELY stop and reply: "For security reasons, please do not share personal data here. Your data has not been saved." (TRANSLATE this warning into the user's language). Do not answer their question.
     2. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
     3. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
-    4. CITATIONS: Extract the FILE and PAGE from the context tags and append them at the end of your answer. You
+    4. CITATIONS: Extract the FILE and PAGE from the context tags and append them at the end of your answer. You MUST translate the words "File" and "Page" into the user's language (e.g., English: [Source - File: name.pdf, Page: 5], German: [Quelle - Datei: name.pdf, Seite: 5], Polish: [Źródło - Plik: name.pdf, Strona: 5]).
+
+    CONTEXT:
+    {context}
+    """
+
+    api_messages = [{"role": "system", "content": system_prompt}]
+    for msg in st.session_state.messages[-6:]:
+        api_messages.append({"role": msg["role"], "content": msg["content"]})
+
+    response = client.chat.completions.create(model="gpt-4o-mini", messages=api_messages)
+    answer = response.choices[0].message.content
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+    st.session_state.messages.append({"role": "assistant", "content": answer})
