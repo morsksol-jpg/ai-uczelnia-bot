@@ -8,4 +8,3 @@ langchain-text-splitters
 chromadb
 pypdf
 tiktoken
-requirements.txt
