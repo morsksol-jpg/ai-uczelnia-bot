@@ -32,15 +32,13 @@ st.markdown("---")
 
 # --- PANEL BOCZNY ---
 with st.sidebar:
-    st.markdown("### 🎓 SAM")
-    st.markdown("Profesjonalny asystent studenta (Wersja 3.0)")
-    st.markdown("---")
+    st.markdown("### ⚙️ Konfiguracja Systemu")
     lista_uczelni = ["merito", "uw", "uj"]
-    wybrana_uczelnia = st.selectbox("Wybierz swoją uczelnię:", lista_uczelni)
+    wybrana_uczelnia = st.selectbox("Wybierz jednostkę organizacyjną:", lista_uczelni)
     st.markdown("---")
-    st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
-
-st.title(f"🎓 SAM – Studencki Asystent ({wybrana_uczelnia.upper()})")
+    st.info("Status: System Ready (v4.0)\n\nFidelity Mode: Active\nGDPR Shield: Active")
+    st.markdown("---")
+    st.caption("Copyright (c) 2026 Seldon. All rights reserved.")
 
 # Pobranie klucza API
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
