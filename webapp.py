@@ -12,7 +12,9 @@ from langchain_openai import OpenAIEmbeddings
 load_dotenv()
 
 # --- KONFIGURACJA INTERFEJSU ---
-st.set_page_config(page_title="SAM - Studencki Asystent", page_icon="🎓")
+st.set_page_config(page_title="SAM - Smart Assistance Module", page_icon="🛡️", layout="wide")
+
+# Ukrycie standardowych elementów Streamlit
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -21,6 +23,12 @@ hide_streamlit_style = """
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# --- NOWY BRANDING (SAM) ---
+st.markdown("<h1 style='text-align: center; font-size: 60px;'>SAM</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 20px; font-weight: bold;'>Smart Assistance Module</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 16px; color: gray;'>AI system for organizational knowledge</p>", unsafe_allow_html=True)
+st.markdown("---")
 
 # --- PANEL BOCZNY ---
 with st.sidebar:
