@@ -12,7 +12,9 @@ from langchain_openai import OpenAIEmbeddings
 load_dotenv()
 
 # --- KONFIGURACJA INTERFEJSU ---
-st.set_page_config(page_title="SAM - Studencki Asystent", page_icon="🎓")
+st.set_page_config(page_title="SAM - Smart Assistance Module", page_icon="🛡️", layout="wide")
+
+# Ukrycie standardowych elementów Streamlit
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -22,17 +24,21 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+# --- NOWY BRANDING (SAM) ---
+st.markdown("<h1 style='text-align: center; font-size: 60px;'>SAM</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 20px; font-weight: bold;'>Smart Assistance Module</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 16px; color: gray;'>AI system for organizational knowledge</p>", unsafe_allow_html=True)
+st.markdown("---")
+
 # --- PANEL BOCZNY ---
 with st.sidebar:
-    st.markdown("### 🎓 SAM")
-    st.markdown("Profesjonalny asystent studenta (Wersja 3.0)")
-    st.markdown("---")
+    st.markdown("### ⚙️ Konfiguracja Systemu")
     lista_uczelni = ["merito", "uw", "uj"]
-    wybrana_uczelnia = st.selectbox("Wybierz swoją uczelnię:", lista_uczelni)
+    wybrana_uczelnia = st.selectbox("Wybierz jednostkę organizacyjną:", lista_uczelni)
     st.markdown("---")
-    st.caption("Copyright (c) 2026 Krzysztof Adamiak. All rights reserved.")
-
-st.title(f"🎓 SAM – Studencki Asystent ({wybrana_uczelnia.upper()})")
+    st.info("Status: System Ready (v4.0)\n\nFidelity Mode: Active\nGDPR Shield: Active")
+    st.markdown("---")
+    st.caption("Copyright (c) 2026 Seldon. All rights reserved.")
 
 # Pobranie klucza API
 api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
@@ -41,111 +47,84 @@ if not api_key:
     st.error("Brak klucza API OpenAI!")
     st.stop()
 
-# --- FUNKCJA ŁADOWANIA I OPTYMALIZACJI BAZY (V3) ---
-@st.cache_resource(show_spinner="Inicjalizacja szybkiej bazy wiedzy v3...")
+# --- INICJALIZACJA BAZY WIEDZY ---
+@st.cache_resource(show_spinner="Inicjalizacja modułu wiedzy...")
 def load_and_prepare_db(_api_key):
     embeddings = OpenAIEmbeddings(api_key=_api_key, model="text-embedding-3-small")
-    
-    # ZMIANA NA V3: Zmuszamy chmurę do zbudowania bazy od nowa
-    persist_directory = "vector_db_v3"
-    collection_name_v3 = "sam_production_v3"
+    persist_directory = "vector_db_v4"
+    collection_name = "sam_knowledge_v4"
     
     if os.path.exists(persist_directory):
-        return Chroma(
-            persist_directory=persist_directory, 
-            embedding_function=embeddings, 
-            collection_name=collection_name_v3
-        )
+        return Chroma(persist_directory=persist_directory, embedding_function=embeddings, collection_name=collection_name)
 
     documents = []
     base_folder = "documents"
-    
     if os.path.exists(base_folder):
-        for uczelnia_folder in os.listdir(base_folder):
-            uczelnia_path = os.path.join(base_folder, uczelnia_folder)
-            if os.path.isdir(uczelnia_path):
-                for filename in os.listdir(uczelnia_path):
+        for unit_folder in os.listdir(base_folder):
+            unit_path = os.path.join(base_folder, unit_folder)
+            if os.path.isdir(unit_path):
+                for filename in os.listdir(unit_path):
                     if filename.endswith(".pdf"):
-                        loader = PyPDFLoader(os.path.join(uczelnia_path, filename))
+                        loader = PyPDFLoader(os.path.join(unit_path, filename))
                         loaded_docs = loader.load()
                         for doc in loaded_docs:
-                            doc.metadata["uczelnia"] = uczelnia_folder.lower()
+                            doc.metadata["unit"] = unit_folder.lower()
                         documents.extend(loaded_docs)
     
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=300)
     texts = text_splitter.split_documents(documents)
-    
-    db = Chroma.from_documents(
-        texts, 
-        embeddings, 
-        collection_name=collection_name_v3, 
-        persist_directory=persist_directory
-    )
+    db = Chroma.from_documents(texts, embeddings, collection_name=collection_name, persist_directory=persist_directory)
     return db
 
 db = load_and_prepare_db(api_key)
 client = OpenAI(api_key=api_key)
 
-# Inicjalizacja i czyszczenie pamięci
+# Pamięć sesji
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "last_unit" not in st.session_state:
+    st.session_state.last_unit = wybrana_uczelnia
 
-if "ostatnia_uczelnia" not in st.session_state:
-    st.session_state.ostatnia_uczelnia = wybrana_uczelnia
-
-if st.session_state.ostatnia_uczelnia != wybrana_uczelnia:
+if st.session_state.last_unit != wybrana_uczelnia:
     st.session_state.messages = []
-    st.session_state.ostatnia_uczelnia = wybrana_uczelnia
+    st.session_state.last_unit = wybrana_uczelnia
     st.rerun()
 
+# Wyświetlanie czatu
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Zadaj pytanie dotyczące regulaminu..."):
+# --- GŁÓWNA LOGIKA SYSTEMU ---
+if prompt := st.chat_input("Zadaj pytanie systemowi..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     results = db.max_marginal_relevance_search(
-        prompt, 
-        k=25, 
-        fetch_k=50,
-        filter={"uczelnia": wybrana_uczelnia.lower()}
+        prompt, k=15, fetch_k=30, filter={"unit": wybrana_uczelnia.lower()}
     )
     
-    # ZMIANA: Czyste tagi maszynowe do cytowań
     context_parts = []
     for r in results:
         plik = os.path.basename(r.metadata.get("source", "Document"))
         strona = r.metadata.get("page", 0) + 1 
-        tresc = r.page_content
-        context_parts.append(f"[FILE: {plik}, PAGE: {strona}]\n{tresc}")
-        
+        context_parts.append(f"[FILE: {plik}, PAGE: {strona}]\n{r.page_content}")
     context = "\n\n---\n\n".join(context_parts)
 
-    kontakty_dziekanatow = {
-        "merito": "Dziekanat Merito Szczecin: ul. Śniadeckich 3, Tel: +48 91 422 74 44, E-mail: dziekanat@szczecin.merito.pl",
-        "uw": "Dziekanat UW: ul. Krakowskie Przedmieście 26/28, 00-927 Warszawa",
-        "uj": "Dziekanat UJ: ul. Gołębia 24, 31-007 Kraków"
-    }
-    
-    obecny_kontakt = kontakty_dziekanatow.get(wybrana_uczelnia.lower(), "Contact your university's main office.")
-
-    # ZMIANA: Twardy anglojęzyczny prompt kontrolujący model AI
+    # --- SYSTEM PROMPT V4 (SOPHISTICATED & SECURE) ---
     system_prompt = f"""
-    You are a professional student assistant for {wybrana_uczelnia.upper()} university.
-    CRITICAL DIRECTIVE: You MUST answer in the EXACT SAME LANGUAGE that the user used in their prompt. If the user asks in English, reply in English. If German, reply in German. If Polish, reply in Polish. NO EXCEPTIONS.
+    You are SAM (Smart Assistance Module), a sophisticated AI system for organizational knowledge.
+    
+    CRITICAL DIRECTIVE: You MUST answer in the EXACT SAME LANGUAGE as the user. NO EXCEPTIONS.
 
-    RULES:
-    1. GDPR PRIVACY SHIELD (PRIORITY 1): If the user shares sensitive data (PESEL, student ID, Matrikelnummer, numer albumu, name, address), IMMEDIATELY stop and reply: "For security reasons, please do not share personal data here. Your data has not been saved." (TRANSLATE this warning into the user's language). Do not answer their question.
-    2. MISSING DATA: If the answer is not in the provided text, DO NOT make it up. Reply: "I'm sorry, I couldn't find this information. Please contact the Dean's office: {obecny_kontakt}" (TRANSLATE this phrase into the user's language).
-    3. SCHOLARSHIP MATH: Scholarships depend on TOTAL POINTS (GPA + extra points). If the user provides both, ADD them mathematically (e.g., 4.8 + 2.0 = 6.8). Find the matching range in the context table (e.g., 6.5 - 6.99) and provide the EXACT monetary amount.
-    4. CITATIONS: At the very end of your response, you MUST append the source file and page number. 
-    Format strictly as: "[Source: filename.pdf, Page: X]".
-    5. PRECISION AND FIDELITY (CRITICAL): Pay strict attention to adjectives and specific conditions in the text. If a rule applies to a specific type of event (e.g., "egzamin dyplomowy" / "diploma exam"), you MUST NOT generalize it to all exams. You must explicitly state the specific condition in your answer. If the user's question is broad, but the context is specific, clarify this limitation.
-    6. PROACTIVE CLARIFICATION: If the user's query is broad (e.g., "I failed an exam"), but the retrieved context only covers a highly specific scenario (e.g., "diploma exam"), you must point out this difference. You must state what the specific rule says, but immediately explicitly ASK the user to clarify their situation (e.g., "I found rules regarding a diploma exam. Is this what you mean, or are you asking about a regular session exam?"). Always translate this clarifying question into the user's language.
-    CRITICAL WARNING: You MUST translate the words "Source" and "Page" into the EXACT language of the user's prompt! NEVER use Polish words like "Źródło" or "Strona" unless the user asked the question in Polish! If the user asks in English, you MUST use "[Source: ..., Page: ...]".
+    CORE RULES:
+    1. GDPR SHIELD: If user provides personal data (name, ID, PESEL, Matrikelnummer), stop immediately and warn the user. Translate warning to their language.
+    2. FIDELITY & PRECISION: Never generalize specific terms. If a rule mentions "diploma exam", do not call it just an "exam". 
+    3. PROACTIVE CLARIFICATION: If the user's query is vague, but the context is specific, you MUST ask for clarification (e.g., "I found rules for diploma exams. Are you asking about those or regular ones?").
+    4. CITATIONS: At the end of every answer, append the source as: "[Source: filename.pdf, Page: X]". Translate "Source" and "Page" to the user's language.
+    5. DATA LIMIT: If information is missing, refer to the official contact point for {wybrana_uczelnia.upper()}.
+
     CONTEXT:
     {context}
     """
