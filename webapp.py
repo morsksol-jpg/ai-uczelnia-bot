@@ -8,6 +8,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 
+from sentence_transformers import CrossEncoder
+
 # Ładowanie zmiennych środowiskowych
 load_dotenv()
 
@@ -93,6 +95,7 @@ def load_and_prepare_db(_api_key):
 
 db = load_and_prepare_db(api_key)
 client = OpenAI(api_key=api_key)
+reranker = CrossEncoder("BAAI/bge-reranker-large")
 
 # Inicjalizacja i czyszczenie pamięci
 if "messages" not in st.session_state:
