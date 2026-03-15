@@ -95,6 +95,7 @@ def load_and_prepare_db(_api_key):
 
 db = load_and_prepare_db(api_key)
 client = OpenAI(api_key=api_key)
+reranker = CrossEncoder("BAAI/bge-reranker-large")
 
 # Inicjalizacja i czyszczenie pamięci
 if "messages" not in st.session_state:
