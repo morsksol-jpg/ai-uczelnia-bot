@@ -37,7 +37,7 @@ with st.sidebar:
     wybrana_uczelnia = st.selectbox("Wybierz jednostkę organizacyjną:", lista_uczelni)
     st.markdown("---")
     st.info("""
-    **System Status:** Ready (v4.0)
+    **System Status:** Ready (v4.2)
     
     🛡️ **Fidelity Mode:** Active
     🔒 **GDPR Shield:** Active
@@ -54,11 +54,11 @@ if not api_key:
     st.stop()
 
 # --- INICJALIZACJA BAZY WIEDZY ---
-@st.cache_resource(show_spinner="Inicjalizacja modułu wiedzy...")
+@st.cache_resource(show_spinner="Inicjalizacja modułu wiedzy SAM...")
 def load_and_prepare_db(_api_key):
     embeddings = OpenAIEmbeddings(api_key=_api_key, model="text-embedding-3-small")
-    persist_directory = "vector_db_v4"
-    collection_name = "sam_knowledge_v4"
+    persist_directory = "vector_db_v4_2"
+    collection_name = "sam_knowledge_v4_2"
     
     if os.path.exists(persist_directory):
         return Chroma(persist_directory=persist_directory, embedding_function=embeddings, collection_name=collection_name)
@@ -102,11 +102,12 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # --- GŁÓWNA LOGIKA SYSTEMU ---
-if prompt := st.chat_input("Zadaj pytanie systemowi..."):
+if prompt := st.chat_input("Zadaj pytanie systemowi SAM..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Wyszukiwanie w bazie (RAG)
     results = db.max_marginal_relevance_search(
         prompt, k=15, fetch_k=30, filter={"unit": wybrana_uczelnia.lower()}
     )
@@ -118,38 +119,37 @@ if prompt := st.chat_input("Zadaj pytanie systemowi..."):
         context_parts.append(f"[FILE: {plik}, PAGE: {strona}]\n{r.page_content}")
     context = "\n\n---\n\n".join(context_parts)
 
-    # --- SYSTEM PROMPT V4 (SOPHISTICATED & SECURE) ---
-    # --- SYSTEM PROMPT V4.1 (ULTRA-STRICT LANGUAGE & PRECISION) ---
+    # --- SYSTEM PROMPT V4.2 (Krzysztof Adamiak Edition) ---
     system_prompt = f"""
     You are SAM (Smart Assistance Module), a sophisticated AI system for organizational knowledge created by Krzysztof Adamiak.
     
     STRICT LANGUAGE RULE:
     - You MUST identify the language of the user's question and respond EXCLUSIVELY in that language.
-    - If the user asks in English, the ENTIRE response must be in English.
-    - If the user asks in German, the ENTIRE response must be in German.
-    - Even if the provided CONTEXT is in Polish, you must TRANSLATE the information to the user's language.
+    - Even if the provided CONTEXT is in Polish, translate it accurately to the user's language.
 
     CORE RULES:
     1. GDPR SHIELD: If user provides personal data (name, ID, PESEL), stop and warn them in their language.
-    2. FIDELITY: Do not generalize. If the text says "diploma exam", use that exact term.
-    3. PROACTIVE CLARIFICATION: If the query is broad but the rule is specific, ask for clarification in the user's language.
+    2. FIDELITY & NUMERICAL RIGOR: Do not generalize. Be extremely precise with numbers (dates, student counts, amounts). If the text says "three", you MUST NOT say "five".
+    3. PROACTIVE CLARIFICATION: If the query is broad but the rule is specific, you MUST point this out and ask for clarification in the user's language.
     4. CITATIONS: At the end of every answer, append: "[Source: filename.pdf, Page: X]". Always translate "Source" and "Page" to the user's language.
     5. DATA LIMIT: If information is missing, refer to the official contact point for {wybrana_uczelnia.upper()}.
-    6. NUMERICAL RIGOR: You must be extremely precise with numbers (dates, amounts, student counts). Never use "common knowledge" or typical values. If the document says "three", you MUST NOT say "five". If the document is unclear, state that you cannot find the exact number instead of guessing.
 
-
-    CONTEXT (Use this to answer):
+    CONTEXT:
     {context}
     """
+
     api_messages = [{"role": "system", "content": system_prompt}]
+    # Przesyłamy historię czatu (ostatnie 6 wiadomości)
     for msg in st.session_state.messages[-6:]:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
 
+    # Wywołanie modelu z zerową temperaturą (Zero Creativity = High Fact Fidelity)
     response = client.chat.completions.create(
-    model="gpt-4o-mini", 
-    messages=api_messages,
-    temperature=0  # To wyłącza kreatywność AI i zmusza do trzymania się faktów!
-)
+        model="gpt-4o-mini", 
+        messages=api_messages,
+        temperature=0
+    )
+    answer = response.choices[0].message.content
 
     with st.chat_message("assistant"):
         st.markdown(answer)
