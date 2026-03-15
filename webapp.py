@@ -8,6 +8,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 
+from sentence_transformers import CrossEncoder
+
 # Ładowanie zmiennych środowiskowych
 load_dotenv()
 
